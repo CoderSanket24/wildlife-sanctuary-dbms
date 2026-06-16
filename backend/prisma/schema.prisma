@@ -1,0 +1,163 @@
+datasource db {
+  provider = "postgresql"
+}
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["partialIndexes"] // Optimizes our partial index lookups
+}
+
+enum AnimalStatus {
+  HEALTHY
+  UNDER_CARE
+  CRITICAL
+  QUARANTINED
+}
+
+enum ClimateType {
+  TROPICAL
+  TEMPERATE
+  ARID
+  WETLAND
+  ALPINE
+}
+
+enum StaffRole {
+  RANGER
+  VETERINARIAN
+  ADMINISTRATOR
+  FIELD_ANALYST
+}
+
+model Zone {
+  zone_id            Int         @id @default(autoincrement())
+  name               String      @unique
+  climate            ClimateType @default(TROPICAL)
+  camera_traps_count Int         @default(0)
+  ticket_price       Decimal     @db.Decimal(10, 2)
+
+  enclosures         Enclosure[]
+  tickets            Ticket[]
+
+  @@map("zones")
+}
+
+model Enclosure {
+  enclosure_id      Int      @id @default(autoincrement())
+  zone_id           Int
+  code_name         String   @unique // e.g., "SAV-GRID-A"
+  max_capacity      Int
+  current_occupancy Int      @default(0)
+
+  zone              Zone     @relation(fields: [zone_id], references: [zone_id], onDelete: Cascade)
+  animals           Animal[]
+
+  @@map("enclosures")
+}
+
+model Animal {
+  animal_id       Int          @id @default(autoincrement())
+  enclosure_id    Int?
+  species         String       @db.VarChar(100)
+  scientific_name String?      @db.VarChar(150)
+  nickname        String?      @db.VarChar(100)
+  birth_date      DateTime?    @db.Date
+  date_joined     DateTime     @default(now()) @db.Date
+  health_status   AnimalStatus @default(HEALTHY)
+
+  enclosure       Enclosure?   @relation(fields: [enclosure_id], references: [enclosure_id], onDelete: SetNull)
+  surveys         Survey[]
+  health_logs     HealthLog[]
+
+  @@map("animals")
+  
+  @@index([health_status])
+}
+
+model Survey {
+  survey_id      BigInt   @id @default(autoincrement())
+  animal_id      Int
+  survey_date    DateTime @default(now())
+  sighting_count Int      @default(1)
+  latitude       Decimal  @db.Decimal(9, 6)
+  longitude      Decimal  @db.Decimal(9, 6)
+
+  animal         Animal   @relation(fields: [animal_id], references: [animal_id], onDelete: Cascade)
+
+  @@map("animal_surveys")
+
+  @@index([animal_id, survey_date(sort: Desc)])
+}
+
+model Visitor {
+  visitor_id    Int      @id @default(autoincrement())
+  email         String   @unique @db.VarChar(150)
+  password_hash String   @db.VarChar(255)
+  first_name    String   @db.VarChar(100)
+  last_name     String   @db.VarChar(100)
+  age           Int
+  created_at    DateTime @default(now())
+
+  tickets       Ticket[]
+  feedbacks     Feedback[]
+
+  @@map("visitors")
+}
+
+model Ticket {
+  ticket_id    BigInt   @id @default(autoincrement())
+  visitor_id   Int
+  zone_id      Int
+  booking_date DateTime @default(now())
+  
+  base_cost    Decimal  @db.Decimal(10, 2)
+  gst_amount   Decimal  @default(0.00) @db.Decimal(10, 2)
+  total_amount Decimal  @default(0.00) @db.Decimal(10, 2)
+
+  visitor      Visitor  @relation(fields: [visitor_id], references: [visitor_id], onDelete: Restrict)
+  zone         Zone     @relation(fields: [zone_id], references: [zone_id], onDelete: Restrict)
+
+  @@map("tickets")
+}
+
+model Feedback {
+  feedback_id   Int      @id @default(autoincrement())
+  visitor_id    Int
+  rating        Int      // Checked via business layers for 1-5 validation
+  comments      String   @db.Text
+  submitted_at  DateTime @default(now())
+
+  visitor       Visitor  @relation(fields: [visitor_id], references: [visitor_id], onDelete: Cascade)
+
+  @@map("feedbacks")
+}
+
+model Staff {
+  staff_id    Int       @id @default(autoincrement())
+  email       String    @unique @db.VarChar(150)
+  name        String    @db.VarChar(150)
+  role        StaffRole @default(RANGER)
+  license_no  String?   @unique @db.VarChar(100) // For vets only
+  joined_at   DateTime  @default(now()) @db.Date
+
+  medical_cases HealthLog[]
+
+  @@map("staff")
+}
+
+model HealthLog {
+  log_id         BigInt    @id @default(autoincrement())
+  animal_id      Int
+  veterinarian_id Int
+  logged_at      DateTime  @default(now())
+  diagnosis      String    @db.Text
+  treatment      String    @db.Text
+  require_isolation Boolean @default(false)
+
+  animal         Animal    @relation(fields: [animal_id], references: [animal_id], onDelete: Cascade)
+  veterinarian   Staff     @relation(fields: [veterinarian_id], references: [staff_id], onDelete: Restrict)
+
+  @@map("health_logs")
+  
+  @@index([animal_id, logged_at(sort: Desc)])
+}
