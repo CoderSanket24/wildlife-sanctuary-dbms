@@ -51,18 +51,15 @@ BEFORE INSERT ON animals
 FOR EACH ROW EXECUTE FUNCTION fn_enforce_enclosure_capacity();
 
 
-CREATE OR REPLACE PROCEDURE sp_book_safari_ticket(
+CREATE OR REPLACE FUNCTION fn_book_safari_ticket(
     p_visitor_id INT,
-    p_zone_id INT,
-    OUT p_success BOOLEAN
+    p_zone_id INT
 )
-AS $$
+RETURNS BOOLEAN AS $$
 DECLARE
     v_zone_exists INT;
     v_visitor_exists INT;
 BEGIN
-    p_success := FALSE;
-
     SELECT COUNT(*) INTO v_visitor_exists FROM visitors WHERE visitor_id = p_visitor_id;
     SELECT COUNT(*) INTO v_zone_exists FROM zones WHERE zone_id = p_zone_id;
 
@@ -77,17 +74,13 @@ BEGIN
     INSERT INTO tickets (visitor_id, zone_id, base_cost, gst_amount, total_amount)
     VALUES (p_visitor_id, p_zone_id, 0.00, 0.00, 0.00);
 
-    p_success := TRUE;
-    COMMIT;
-    
+    RETURN TRUE;
+
 EXCEPTION
     WHEN OTHERS THEN
-        p_success := FALSE;
-        ROLLBACK;
-        RAISE NOTICE 'Transactional Failure Encountered: Rolling back environment logs. Error: %', SQLERRM;
+        RAISE EXCEPTION 'Transaction Aborted: Internal database error. Error: %', SQLERRM;
 END;
 $$ LANGUAGE plpgsql;
-
 
 CREATE OR REPLACE VIEW v_zone_popularity_analytics AS
 SELECT 
