@@ -54,7 +54,7 @@ export const loginVisitor = async (req, res) => {
             return res.status(401).json({ success: false, message: 'Invalid email or password.' })
         }
 
-        const token = jwt.sign({visitor_id:visitor.visitor_id, role: 'visitor'}, JWT_SECRET, { expiresIn: '1d' })
+        const token = jwt.sign({visitor_id:visitor.visitor_id, role: 'admin'}, JWT_SECRET, { expiresIn: '1d' })
 
         res.cookie('session_token', token, {
             httpOnly: true,

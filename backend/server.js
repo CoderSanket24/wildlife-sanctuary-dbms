@@ -1,10 +1,11 @@
 import express from 'express'
 import cookieParser from 'cookie-parser'
 import cors from 'cors'
-import prisma from './config/prisma.js'
 import dotenv from 'dotenv'
 import patchBigInt from './utils/patchBigInt.js'
 import authRoutes from './routes/authRoutes.js'
+import ticketRoutes from './routes/ticketRoutes.js'
+import zoneRoutes from './routes/zoneRoutes.js'
 
 dotenv.config()
 patchBigInt()
@@ -19,15 +20,8 @@ app.use(cors({
   credentials: true, // Crucial parameter to allow HTTP-only session cookies to pass through the network
 }));
 app.use('/api/auth', authRoutes)
-
-app.get('/health', async (req, res) => {
-    try {
-        await prisma.$queryRaw`SELECT 1`;
-        res.status(200).json({ success: true, message: 'Database connection successful' })
-    } catch (error) {
-        res.status(500).json({ success: false, message: 'Database connection failed' })
-    }
-})
+app.use('/api/ticket', ticketRoutes)
+app.use('/api/zones', zoneRoutes)
 
 app.use((err, req, res, next) => {
     console.error('🔥 Internal System Fault Hooked:',err.stack);

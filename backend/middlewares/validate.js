@@ -1,6 +1,5 @@
 import { z } from 'zod';
 
-// Define the exact structural rule matrix for user registration
 export const registerSchema = z.object({
   body: z.object({
     email: z.string().email({ message: "Invalid email format structure." }).trim().toLowerCase(),
@@ -11,7 +10,6 @@ export const registerSchema = z.object({
   }),
 });
 
-// Define the lookup payload rules for logging in
 export const loginSchema = z.object({
   body: z.object({
     email: z.string().email({ message: "Invalid email structure format." }).trim().toLowerCase(),

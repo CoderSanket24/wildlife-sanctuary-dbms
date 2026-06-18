@@ -2,7 +2,7 @@ import jwt from 'jsonwebtoken'
 
 const JWT_SECRET = process.env.JWT_SECRET
 
-export const authenticateVisitor = (req, res, next) => {
+export const protect = (req, res, next) => {
     try {
         const token = req.cookies.session_token
 
@@ -11,7 +11,7 @@ export const authenticateVisitor = (req, res, next) => {
         }
 
         const decoded = jwt.verify(token, JWT_SECRET)
-        req.visitor = decoded
+        req.user = decoded
         next()
     } catch (error) {
         console.error('🔥 Token Verification Corrupted:', error.message);
@@ -21,5 +21,23 @@ export const authenticateVisitor = (req, res, next) => {
         }
 
         return res.status(401).json({ success: false, error: 'Access Denied: Compromised session signature token.' });
+    }
+}
+
+export const restrictTo = (...allowedRoles) => {
+    return (req, res, next) => {
+        if (!req.user || !req.user.role) {
+            return res.status(403).json({
+                success: false,
+                error: 'Access Denied: Security framework could not verify user role attributes.'
+            });
+        }
+        if (!allowedRoles.includes(req.user.role)) {
+            return res.status(403).json({
+                success: false,
+                error: 'Access Denied: You do not possess the administrative clearance to perform this action.'
+            });
+        }
+        return next();
     }
 }
