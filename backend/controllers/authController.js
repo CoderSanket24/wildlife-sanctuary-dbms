@@ -81,3 +81,22 @@ export const loginVisitor = async (req, res) => {
         return res.status(500).json({ success: false, message: 'Error occurred while logging in.' })
     }
 }
+
+export const logoutVisitor = async (req, res) => {
+  try {
+    res.clearCookie('session_token', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      expires: new Date(0) 
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: 'Session terminated successfully. Token handles cleared.'
+    });
+  } catch (error) {
+    console.error('🔥 Logout Operational Fault:', error);
+    return res.status(500).json({ success: false, error: 'Internal failure during session termination.' });
+  }
+};
