@@ -1,95 +1,111 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import { Play } from "lucide-react";
+import { Play, Volume2, VolumeX } from "lucide-react";
 
+/*
+  ─────────────────────────────────────────────────
+  DROP YOUR VIDEO FILES IN:  public/videos/
+    video1.mp4  →  e.g. elephant herd footage
+    video2.mp4  →  e.g. big cat sighting
+    video3.mp4  →  e.g. night safari / forest walk
+  ─────────────────────────────────────────────────
+*/
 const videos = [
   {
     id: "v1",
     title: "Elephant Herd at Dawn",
     description: "A magnificent herd crossing the savannah at sunrise.",
-    src: "https://www.youtube.com/embed/bFuvRmTZYo0",
-    thumb: "https://img.youtube.com/vi/bFuvRmTZYo0/hqdefault.jpg",
+    src: "/videos/elephant.mp4",
   },
   {
     id: "v2",
     title: "Big Cat Sighting",
     description: "A rare leopard resting on ancient rocks in the sanctuary.",
-    src: "https://www.youtube.com/embed/Hm3jh6tFEYk",
-    thumb: "https://img.youtube.com/vi/Hm3jh6tFEYk/hqdefault.jpg",
+    src: "/videos/big-cat.mp4",
   },
   {
     id: "v3",
     title: "Night Safari Experience",
     description: "Nocturnal wonders discovered under the stars with our rangers.",
-    src: "https://www.youtube.com/embed/lfBEXkUaIV4",
-    thumb: "https://img.youtube.com/vi/lfBEXkUaIV4/hqdefault.jpg",
+    src: "/videos/night-safari.mp4",
   },
 ];
 
 /*
-  Slot layout (percentage of container):
-    0 = active  → large card on the left
-    1 = top     → small card top-right
-    2 = bottom  → small card bottom-right
+  Layout — active large LEFT, two small stacked RIGHT
+    slot 0 = active  (left, large)
+    slot 1 = top-right  (small)
+    slot 2 = bottom-right (small)
 */
 const SLOTS = [
-  { left: "0%",  top: "0%",  width: "61%", height: "100%", zIndex: 3 },
-  { left: "64%", top: "0%",  width: "36%", height: "47%",  zIndex: 2 },
-  { left: "64%", top: "53%", width: "36%", height: "47%",  zIndex: 1 },
+  { left: "0%",  top: "0%",   width: "62%",  height: "100%", zIndex: 3 },
+  { left: "65%", top: "0%",   width: "35%",  height: "47%",  zIndex: 2 },
+  { left: "65%", top: "53%",  width: "35%",  height: "47%",  zIndex: 1 },
 ];
 
-const ANIM_MS   = 620;  // card transition duration
-const CYCLE_MS  = 8000; // round-robin interval
+const ANIM_MS  = 600;
+const CYCLE_MS = 10000;
 
-// CSS transition string used on every positional property
-const CARD_TRANSITION = `left ${ANIM_MS}ms cubic-bezier(0.4,0,0.2,1),
+const CARD_TRANSITION = `
+  left   ${ANIM_MS}ms cubic-bezier(0.4,0,0.2,1),
   top    ${ANIM_MS}ms cubic-bezier(0.4,0,0.2,1),
   width  ${ANIM_MS}ms cubic-bezier(0.4,0,0.2,1),
   height ${ANIM_MS}ms cubic-bezier(0.4,0,0.2,1),
-  box-shadow ${ANIM_MS}ms ease,
-  border-color ${ANIM_MS}ms ease`;
+  border-color ${ANIM_MS}ms ease,
+  box-shadow   ${ANIM_MS}ms ease
+`.trim();
 
 const VideoCarousel = () => {
-  const [activeIdx,      setActiveIdx]      = useState(0);
-  const [liveIdx,        setLiveIdx]        = useState(0);  // which card shows iframe
-  const [progress,       setProgress]       = useState(0);
+  const [activeIdx, setActiveIdx] = useState(0);
+  const [liveIdx,   setLiveIdx]   = useState(0);
+  const [muted,     setMuted]     = useState(true);
+  const [progress,  setProgress]  = useState(0);
 
-  // Refs to avoid stale closures in intervals
-  const activeIdxRef   = useRef(0);
-  const isAnimRef      = useRef(false);
-  const cycleRef       = useRef(null);
-  const progressRef    = useRef(null);
-  const startTimeRef   = useRef(Date.now());
+  const activeIdxRef = useRef(0);
+  const isAnimRef    = useRef(false);
+  const cycleRef     = useRef(null);
+  const progressRef  = useRef(null);
+  const startTimeRef = useRef(Date.now());
+  // refs to each <video> element
+  const videoRefs    = useRef([null, null, null]);
 
-  /* ── advance to a specific index ── */
+  /* ── play the active video, pause others ── */
+  const syncPlayback = useCallback((idx) => {
+    videoRefs.current.forEach((el, i) => {
+      if (!el) return;
+      if (i === idx) {
+        el.currentTime = 0;
+        el.play().catch(() => {});
+      } else {
+        el.pause();
+      }
+    });
+  }, []);
+
+  /* ── advance ── */
   const advance = useCallback((nextIdx) => {
     if (isAnimRef.current) return;
     isAnimRef.current = true;
-
-    // 1. Hide iframe immediately → all cards show thumbnail while animating
     setLiveIdx(-1);
-    // 2. Trigger the position animation by updating activeIdx
     setActiveIdx(nextIdx);
     activeIdxRef.current = nextIdx;
-
-    // 3. After animation completes, reveal iframe on new active card
     setTimeout(() => {
       setLiveIdx(nextIdx);
+      syncPlayback(nextIdx);
       isAnimRef.current = false;
-    }, ANIM_MS + 80);
-  }, []);
+    }, ANIM_MS + 60);
+  }, [syncPlayback]);
 
-  /* ── restart progress bar ── */
+  /* ── progress bar ── */
   const restartProgress = useCallback(() => {
     clearInterval(progressRef.current);
     setProgress(0);
     startTimeRef.current = Date.now();
     progressRef.current = setInterval(() => {
-      const elapsed = Date.now() - startTimeRef.current;
-      setProgress(Math.min((elapsed / CYCLE_MS) * 100, 100));
+      setProgress(Math.min(((Date.now() - startTimeRef.current) / CYCLE_MS) * 100, 100));
     }, 50);
   }, []);
 
-  /* ── start round-robin cycle ── */
+  /* ── round-robin cycle ── */
   const startCycle = useCallback(() => {
     clearInterval(cycleRef.current);
     restartProgress();
@@ -100,42 +116,54 @@ const VideoCarousel = () => {
     }, CYCLE_MS);
   }, [advance, restartProgress]);
 
-  /* ── init on mount ── */
   useEffect(() => {
     setLiveIdx(0);
+    syncPlayback(0);
     startCycle();
     return () => {
       clearInterval(cycleRef.current);
       clearInterval(progressRef.current);
     };
-  }, [startCycle]);
+  }, [startCycle, syncPlayback]);
 
-  /* ── manual click on inactive card ── */
+  /* ── manual select ── */
   const handleSelect = (idx) => {
     if (idx === activeIdxRef.current || isAnimRef.current) return;
     clearInterval(cycleRef.current);
     advance(idx);
-    // restart cycle from new position after animation
-    setTimeout(() => startCycle(), ANIM_MS + 100);
+    setTimeout(() => startCycle(), ANIM_MS + 80);
   };
 
   return (
     <aside className="ml-auto w-full max-w-lg">
       {/* Header */}
-      <div className="mb-3">
-        <p className="text-sm font-semibold uppercase tracking-[0.32em] text-white/60">Watch</p>
-        <h2 className="mt-0.5 text-2xl font-semibold uppercase tracking-[0.12em] text-lime-300">
-          Sanctuary Stories
-        </h2>
+      <div className="mb-3 flex items-end justify-between">
+        <div>
+          <p className="text-sm font-semibold uppercase tracking-[0.32em] text-white/60">Watch</p>
+          <h2 className="mt-0.5 text-2xl font-semibold uppercase tracking-[0.12em] text-lime-300">
+            Sanctuary Stories
+          </h2>
+        </div>
+        {/* Mute toggle */}
+        <button
+          onClick={() => {
+            const next = !muted;
+            setMuted(next);
+            videoRefs.current.forEach((el) => { if (el) el.muted = next; });
+          }}
+          className="flex items-center gap-1.5 rounded-full border border-white/15 bg-white/5 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-white/60 backdrop-blur-sm transition hover:border-lime-300/30 hover:text-lime-300"
+        >
+          {muted ? <VolumeX size={11} /> : <Volume2 size={11} />}
+          {muted ? "Unmute" : "Mute"}
+        </button>
       </div>
 
-      {/* ── Main carousel container (fixed height for absolute layout) ── */}
+      {/* ── Carousel container ── */}
       <div className="relative w-full" style={{ height: "420px" }}>
         {videos.map((video, i) => {
-          const slotIdx = (i - activeIdx + 3) % 3; // 0=active, 1=top, 2=bottom
-          const slot    = SLOTS[slotIdx];
-          const isActive  = slotIdx === 0;
-          const showIframe = liveIdx === i;
+          const slotIdx  = (i - activeIdx + 3) % 3;
+          const slot     = SLOTS[slotIdx];
+          const isActive = slotIdx === 0;
 
           return (
             <div
@@ -153,43 +181,32 @@ const VideoCarousel = () => {
               }}
               className={`overflow-hidden rounded-2xl border ${
                 isActive
-                  ? "border-lime-300/35 shadow-[0_0_48px_rgba(163,230,53,0.18)] ring-1 ring-lime-300/20"
+                  ? "border-lime-300/35 shadow-[0_0_48px_rgba(163,230,53,0.16)] ring-1 ring-lime-300/20"
                   : "border-white/10 hover:border-lime-300/25"
               }`}
             >
-              {/* Thumbnail — always visible as base layer */}
-              <img
-                src={video.thumb}
-                alt={video.title}
+              {/* Native <video> — instant load, no chrome, no buffering UI */}
+              <video
+                ref={(el) => (videoRefs.current[i] = el)}
+                src={video.src}
+                muted={muted}
+                loop
+                playsInline
+                preload="auto"
+                className="absolute inset-0 h-full w-full object-cover"
                 style={{
-                  opacity: isActive ? (showIframe ? 0 : 0.85) : 0.45,
+                  opacity:    isActive ? 1 : 0.45,
                   transition: `opacity ${ANIM_MS}ms ease`,
                 }}
-                className="absolute inset-0 h-full w-full object-cover"
               />
 
-              {/* iframe — only rendered & visible for live (active, post-animation) card */}
-              {showIframe && (
-                <iframe
-                  key={`${video.id}-live`}
-                  src={`${video.src}?autoplay=1&mute=1&controls=0&modestbranding=1&rel=0&showinfo=0`}
-                  title={video.title}
-                  className="absolute inset-0 h-full w-full"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                  allowFullScreen
-                />
-              )}
+              {/* Gradient overlay */}
+              <div className="pointer-events-none absolute inset-0 bg-linear-to-t from-black/80 via-black/10 to-transparent" />
 
-              {/* Bottom gradient */}
-              <div
-                className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-transparent"
-                style={{ opacity: isActive ? 1 : 0.85 }}
-              />
-
-              {/* ── Active card decorations ── */}
+              {/* ── Active card ── */}
               {isActive && (
                 <>
-                  {/* Pulsing "Now Playing" badge */}
+                  {/* Pulsing badge */}
                   <span className="absolute left-2.5 top-2.5 flex items-center gap-1.5 rounded-full border border-lime-300/30 bg-black/60 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.2em] text-lime-300 backdrop-blur-sm">
                     <span className="relative flex h-1.5 w-1.5">
                       <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-lime-400 opacity-75" />
@@ -198,7 +215,7 @@ const VideoCarousel = () => {
                     Now Playing
                   </span>
 
-                  {/* Bottom info + progress */}
+                  {/* Info + progress */}
                   <div className="absolute bottom-0 left-0 right-0 px-3 pb-3">
                     <p className="text-sm font-semibold text-white">{video.title}</p>
                     <p className="mt-0.5 text-xs leading-4 text-white/55 line-clamp-1">{video.description}</p>
@@ -212,18 +229,16 @@ const VideoCarousel = () => {
                 </>
               )}
 
-              {/* ── Inactive card decorations ── */}
+              {/* ── Inactive card ── */}
               {!isActive && (
                 <>
-                  {/* Play icon */}
                   <div className="absolute inset-0 flex items-center justify-center">
-                    <span className="flex h-8 w-8 items-center justify-center rounded-full border border-white/25 bg-black/55 text-white/70 backdrop-blur-sm transition-all duration-200 hover:border-lime-300/50 hover:text-lime-300">
+                    <span className="flex h-8 w-8 items-center justify-center rounded-full border border-white/25 bg-black/55 text-white/70 backdrop-blur-sm transition hover:border-lime-300/50 hover:text-lime-300">
                       <Play size={12} fill="currentColor" />
                     </span>
                   </div>
-                  {/* Tiny title */}
                   <div className="absolute bottom-0 left-0 right-0 px-2 pb-2">
-                    <p className="line-clamp-2 text-[9px] font-semibold leading-tight text-white/75">
+                    <p className="line-clamp-1 text-[9px] font-semibold leading-tight text-white/75">
                       {video.title}
                     </p>
                   </div>
@@ -241,7 +256,7 @@ const VideoCarousel = () => {
             key={i}
             onClick={() => handleSelect(i)}
             aria-label={`Go to video ${i + 1}`}
-            className={`rounded-full transition-all duration-400 ${
+            className={`rounded-full transition-all duration-300 ${
               i === activeIdx
                 ? "h-1.5 w-6 bg-lime-300"
                 : "h-1.5 w-1.5 bg-white/30 hover:bg-white/60"
