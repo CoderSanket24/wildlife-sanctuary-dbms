@@ -4,6 +4,6 @@ import {protect,restrictTo} from "../middlewares/authMiddleware.js"
  
 const router = Router()
 
-router.post('/add', protect, restrictTo('admin'), addNewZone);
+router.post('/add', protect, restrictTo('ADMIN'), addNewZone);
 
 export default router;

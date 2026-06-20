@@ -68,6 +68,7 @@ model Visitor {
   first_name    String     @db.VarChar(100)
   last_name     String     @db.VarChar(100)
   age           Int
+  role          Role     @default(VISITOR) @map("role")
   created_at    DateTime   @default(now())
   feedbacks     Feedback[]
   tickets       Ticket[]
@@ -147,4 +148,10 @@ enum StaffRole {
   VETERINARIAN
   ADMINISTRATOR
   FIELD_ANALYST
+}
+
+enum Role {
+  VISITOR
+  RANGER
+  ADMIN
 }
