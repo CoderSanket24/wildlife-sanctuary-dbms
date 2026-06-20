@@ -17,6 +17,25 @@ export const loginSchema = z.object({
   }),
 });
 
+export const enclosureSchema = z.object({
+  body: z.object({
+    zone_id: z.number().int().positive({ message: "Valid target Zone ID connection link is mandatory." }),
+    code_name: z.string().min(1, { message: "Unique code name identifier string is required." }).trim(),
+    max_capacity: z.number().int().positive({ message: "Max capacity threshold must be a positive integer." }),
+  }),
+});
+
+export const animalSchema = z.object({
+  body: z.object({
+    enclosure_id: z.number().int().positive({ message: "Valid target Enclosure ID link is required." }),
+    species: z.string().min(1, { message: "Species classification string cannot be blank." }).trim(),
+    scientific_name: z.string().min(1, { message: "Scientific taxonomic name is required." }).trim(),
+    nickname: z.string().optional(),
+    birth_date: z.string().datetime({ message: "Birth date must be a valid ISO datetime string." }).optional(),
+    health_status: z.enum(['HEALTHY', 'UNDER_CARE', 'CRITICAL', 'QUARANTINED']).default('HEALTHY'),
+  }),
+});
+
 export const validate = (schema) => (req, res, next) => {
   try {
     schema.parse({

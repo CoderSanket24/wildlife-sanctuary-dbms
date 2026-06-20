@@ -6,6 +6,7 @@ import patchBigInt from './utils/patchBigInt.js'
 import authRoutes from './routes/authRoutes.js'
 import ticketRoutes from './routes/ticketRoutes.js'
 import zoneRoutes from './routes/zoneRoutes.js'
+import habitatRoutes from './routes/habitatRoutes.js'
 
 dotenv.config()
 patchBigInt()
@@ -22,6 +23,7 @@ app.use(cors({
 app.use('/api/auth', authRoutes)
 app.use('/api/ticket', ticketRoutes)
 app.use('/api/zones', zoneRoutes)
+app.use('/api/sanctuary', habitatRoutes)
 
 app.use((err, req, res, next) => {
     console.error('🔥 Internal System Fault Hooked:',err.stack);
