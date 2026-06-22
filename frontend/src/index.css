@@ -32,3 +32,15 @@ a {
 *::-webkit-scrollbar {
     display: none;                /* Chrome, Safari, Opera */
 }
+
+/* Auth form input placeholder colour — lime theme */
+input::placeholder {
+    color: rgba(190, 206, 1, 0.28);
+}
+
+/* Remove number input spin arrows */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
