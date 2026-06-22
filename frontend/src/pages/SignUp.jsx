@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import heroImage from "../assets/image.png";
 import logo from "../assets/logo.png";
+import api from "../api/axiosInstance";
 
 /* ─────────────────────────────────────────────
    Reusable field component
@@ -139,25 +140,16 @@ const SignUp = () => {
     setIsLoading(true);
     try {
       const payload = { ...data, age: Number(data.age) };
-      const res = await fetch("http://localhost:4000/api/auth/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify(payload),
-      });
-      const json = await res.json();
-      if (!res.ok) {
-        if (json.errors && Array.isArray(json.errors)) {
-          setServerError(json.errors.map((e) => e.message).join(" · "));
-        } else {
-          setServerError(json.message || "Registration failed.");
-        }
-        return;
-      }
+      await api.post("/auth/register", payload);
       setSuccess(true);
       setTimeout(() => navigate("/signin"), 2200);
-    } catch {
-      setServerError("Unable to connect to server. Please try again.");
+    } catch (err) {
+      const data = err.response?.data;
+      if (data?.errors && Array.isArray(data.errors)) {
+        setServerError(data.errors.map((e) => e.message).join(" · "));
+      } else {
+        setServerError(data?.message || "Registration failed.");
+      }
     } finally {
       setIsLoading(false);
     }

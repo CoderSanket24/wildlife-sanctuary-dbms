@@ -4,6 +4,7 @@ import { useForm } from "react-hook-form";
 import { Eye, EyeOff, Mail, Lock, AlertCircle, ArrowRight } from "lucide-react";
 import heroImage from "../assets/image.png";
 import logo from "../assets/logo.png";
+import api from "../api/axiosInstance";
 
 const SignIn = () => {
   const navigate = useNavigate();
@@ -21,20 +22,11 @@ const SignIn = () => {
     setServerError("");
     setIsLoading(true);
     try {
-      const res = await fetch("http://localhost:4000/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify(data),
-      });
-      const json = await res.json();
-      if (!res.ok) {
-        setServerError(json.message || "Login failed. Please try again.");
-        return;
-      }
+      await api.post("/auth/login", data);
       navigate("/");
-    } catch {
-      setServerError("Unable to connect to server. Please try again.");
+    } catch (err) {
+      const msg = err.response?.data?.message || "Login failed. Please try again.";
+      setServerError(msg);
     } finally {
       setIsLoading(false);
     }
