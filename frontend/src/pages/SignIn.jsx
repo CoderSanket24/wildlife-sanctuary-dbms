@@ -5,9 +5,11 @@ import { Eye, EyeOff, Mail, Lock, AlertCircle, ArrowRight } from "lucide-react";
 import heroImage from "../assets/image.png";
 import logo from "../assets/logo.png";
 import api from "../api/axiosInstance";
+import { useAuth } from "../context/AuthContext";
 
 const SignIn = () => {
   const navigate = useNavigate();
+  const { loginUser } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [serverError, setServerError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -22,8 +24,9 @@ const SignIn = () => {
     setServerError("");
     setIsLoading(true);
     try {
-      await api.post("/auth/login", data);
-      navigate("/");
+      const res = await api.post("/auth/login", data);
+      loginUser(res.data.user);
+      navigate("/dashboard");
     } catch (err) {
       const msg = err.response?.data?.message || "Login failed. Please try again.";
       setServerError(msg);
