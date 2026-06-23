@@ -100,3 +100,29 @@ export const logoutVisitor = async (req, res) => {
     return res.status(500).json({ success: false, error: 'Internal failure during session termination.' });
   }
 };
+
+export const getMe = async (req, res) => {
+  try {
+    const visitor = await prisma.visitor.findUnique({
+      where: { visitor_id: req.user.visitor_id },
+      select: {
+        visitor_id: true,
+        email: true,
+        first_name: true,
+        last_name: true,
+        age: true,
+        role: true,
+        created_at: true,
+      },
+    });
+
+    if (!visitor) {
+      return res.status(404).json({ success: false, message: 'Visitor not found.' });
+    }
+
+    return res.status(200).json({ success: true, user: visitor });
+  } catch (error) {
+    console.error('Error fetching visitor profile:', error);
+    return res.status(500).json({ success: false, message: 'Error occurred while fetching profile.' });
+  }
+};
