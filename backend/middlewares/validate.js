@@ -45,6 +45,16 @@ export const surveyLogSchema = z.object({
   }),
 });
 
+export const healthLogSchema = z.object({
+  body: z.object({
+    animal_id: z.number().int().positive({ message: "Valid Animal ID link is mandatory." }),
+    veterinarian_id: z.number().int().positive({ message: "Valid Veterinarian Staff ID is required." }),
+    diagnosis: z.string().min(3, { message: "Diagnosis description cannot be blank." }).trim(),
+    treatment: z.string().min(3, { message: "Treatment details are required." }).trim(),
+    require_isolation: z.boolean().default(false),
+  }),
+});
+
 export const validate = (schema) => (req, res, next) => {
   try {
     schema.parse({

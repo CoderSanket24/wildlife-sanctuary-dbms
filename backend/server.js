@@ -8,6 +8,7 @@ import ticketRoutes from './routes/ticketRoutes.js'
 import zoneRoutes from './routes/zoneRoutes.js'
 import habitatRoutes from './routes/habitatRoutes.js'
 import faunaRoutes from './routes/faunaRoutes.js'
+import healthRoutes from './routes/healthRoutes.js';
 
 dotenv.config()
 patchBigInt()
@@ -26,6 +27,7 @@ app.use('/api/ticket', ticketRoutes)
 app.use('/api/zones', zoneRoutes)
 app.use('/api/sanctuary', habitatRoutes)
 app.use('/api/fauna', faunaRoutes)
+app.use('/api/medical', healthRoutes)
 
 app.use((err, req, res, next) => {
     console.error('🔥 Internal System Fault Hooked:',err.stack);
