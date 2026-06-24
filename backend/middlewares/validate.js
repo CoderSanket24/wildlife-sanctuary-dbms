@@ -36,6 +36,15 @@ export const animalSchema = z.object({
   }),
 });
 
+export const surveyLogSchema = z.object({
+  body: z.object({
+    animal_id: z.number().int().positive({ message: "Valid Animal ID link is required." }),
+    sighting_count: z.number().int().positive().default(1),
+    latitude: z.number().min(-90).max(90, { message: "Latitude must stay between -90 and 90." }),
+    longitude: z.number().min(-180).max(180, { message: "Longitude must stay between -180 and 180." }),
+  }),
+});
+
 export const validate = (schema) => (req, res, next) => {
   try {
     schema.parse({
