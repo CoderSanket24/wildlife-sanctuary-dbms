@@ -9,7 +9,6 @@ import {
   LogOut,
   Menu,
   X,
-  ChevronDown,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import logo from "../assets/logo.png";
@@ -101,40 +100,54 @@ const DashboardLayout = ({ children }) => {
             ))}
           </nav>
 
-          {/* Right: user chip + logout */}
-          <div className="hidden items-center gap-3 lg:flex">
-            {/* User chip */}
-            <div
-              className="flex items-center gap-2.5 px-3 py-1.5"
+          {/* Right: profile link + logout */}
+          <div className="hidden items-center gap-2 lg:flex">
+            {/* Clickable profile chip */}
+            <Link
+              to="/dashboard/profile"
+              className="group flex items-center gap-2.5 px-3 py-1.5 transition-all duration-200 hover:bg-lime-400/8"
               style={{
-                background: "rgba(163,230,53,0.06)",
-                border: "1px solid rgba(163,230,53,0.14)",
+                background: "rgba(163,230,53,0.05)",
+                border: "1px solid rgba(163,230,53,0.13)",
+                borderRadius: "8px",
               }}
             >
+              {/* Avatar circle */}
               <div
-                className="flex h-6 w-6 shrink-0 items-center justify-center text-[9px] font-black text-black"
-                style={{ background: "#a3e635" }}
+                className="flex h-7 w-7 shrink-0 items-center justify-center text-[9px] font-black text-black"
+                style={{
+                  background: "linear-gradient(135deg,#a3e635 0%,#7aa028 100%)",
+                  borderRadius: "50%",
+                }}
               >
                 {initials}
               </div>
-              <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/60">
+              {/* Name */}
+              <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/60 group-hover:text-white/85 transition-colors">
                 {user?.first_name}
               </span>
+              {/* Role badge */}
               <span
-                className="text-[8px] font-bold uppercase tracking-[0.2em] px-1.5 py-0.5"
+                className="text-[8px] font-bold uppercase tracking-[0.18em] px-1.5 py-0.5"
                 style={{
-                  background: "rgba(163,230,53,0.12)",
-                  color: "rgba(163,230,53,0.7)",
+                  background: "rgba(163,230,53,0.11)",
+                  color: "rgba(163,230,53,0.65)",
+                  borderRadius: "4px",
                 }}
               >
                 {user?.role}
               </span>
-            </div>
+              {/* Profile icon hint */}
+              <User size={11} className="text-white/20 group-hover:text-lime-300/60 transition-colors" />
+            </Link>
+
+            {/* Divider */}
+            <div className="h-5 w-px" style={{ background: "rgba(255,255,255,0.08)" }} />
 
             {/* Logout */}
             <button
               onClick={handleLogout}
-              className="flex items-center gap-2 px-3 py-2 text-[10px] font-bold uppercase tracking-[0.22em] text-white/30 transition-all hover:text-red-400"
+              className="flex items-center gap-1.5 px-3 py-2 text-[10px] font-bold uppercase tracking-[0.22em] text-white/28 transition-all hover:text-red-400"
             >
               <LogOut size={13} />
               Sign Out

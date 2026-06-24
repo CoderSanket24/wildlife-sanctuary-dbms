@@ -5,9 +5,7 @@ import {
   PawPrint,
   Ticket,
   HeartPulse,
-  ArrowRight,
   Leaf,
-  Shield,
   LayoutGrid,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
@@ -173,25 +171,6 @@ const ActionButton = ({ icon: Icon, label, to }) => (
   </Link>
 );
 
-/* ══════════════════════════════════════════
-   ACCOUNT INFO ROW
-══════════════════════════════════════════ */
-const AccountRow = ({ label, value, accent }) => (
-  <div
-    className="py-3.5"
-    style={{ borderBottom: "1px solid rgba(255,255,255,0.05)" }}
-  >
-    <p className="text-[9px] font-bold uppercase tracking-[0.28em] text-white/25 mb-0.5">
-      {label}
-    </p>
-    <p
-      className="text-[13px] font-semibold truncate"
-      style={{ color: accent ? "rgba(163,230,53,0.80)" : "rgba(255,255,255,0.70)" }}
-    >
-      {value}
-    </p>
-  </div>
-);
 
 /* ══════════════════════════════════════════
    DASHBOARD PAGE
@@ -239,8 +218,7 @@ const Dashboard = () => {
       <section
         className="relative overflow-hidden"
         style={{
-          background: `
-            linear-gradient(180deg, rgba(6,14,7,0.10) 0%, rgba(6,14,7,0.55) 55%, rgba(6,14,7,1) 100%),
+          backgroundImage: `
             linear-gradient(90deg, rgba(6,14,7,0.88) 0%, rgba(6,14,7,0.40) 50%, rgba(6,14,7,0.88) 100%),
             url(${heroImage})
           `,
@@ -249,6 +227,14 @@ const Dashboard = () => {
           minHeight: "320px",
         }}
       >
+        {/* Top-down dark fade — keeps top edge clean */}
+        <div
+          className="pointer-events-none absolute inset-0"
+          style={{
+            background: "linear-gradient(180deg, rgba(6,14,7,0.30) 0%, rgba(6,14,7,0) 30%, rgba(6,14,7,0) 55%, rgba(6,14,7,1) 100%)",
+          }}
+        />
+
         {/* Radial lime glow */}
         <div
           className="pointer-events-none absolute inset-0"
@@ -268,7 +254,7 @@ const Dashboard = () => {
         ].map((p, i) => <Particle key={i} style={p} />)}
 
         {/* Text */}
-        <div className="relative px-6 pb-16 pt-12 md:px-10 xl:px-16">
+        <div className="relative px-6 pb-20 pt-12 md:px-10 xl:px-16">
           <div className="mb-4 flex items-center gap-3">
             <Leaf size={13} className="text-lime-300/55" />
             <p className="text-[10px] font-bold uppercase tracking-[0.45em] text-lime-300/55">
@@ -331,101 +317,27 @@ const Dashboard = () => {
           LOWER PANELS
       ════════════════════════════════ */}
       <section className="px-6 py-8 md:px-10 xl:px-16">
-        <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
 
-          {/* ── Quick Actions ── */}
-          <div>
-            <p
-              className="mb-5 text-xl font-black uppercase tracking-tight text-white"
-            >
-              Quick Actions
-            </p>
-            <div
-              className="overflow-hidden p-5"
-              style={{
-                background: "linear-gradient(145deg, rgba(13,26,15,0.85) 0%, rgba(9,18,10,0.92) 100%)",
-                borderRadius: "18px",
-                border: "1px solid rgba(163,230,53,0.10)",
-              }}
-            >
-              <div className="grid grid-cols-2 gap-3">
-                <ActionButton icon={MapPin}     label="Explore Map"     to="/dashboard/zones"   />
-                <ActionButton icon={PawPrint}   label="Report Sighting" to="/dashboard/animals" />
-                <ActionButton icon={Ticket}     label="Book Safari"     to="/dashboard/zones"   />
-                <ActionButton icon={HeartPulse} label="Health Alerts"   to="/dashboard/animals" />
-              </div>
-            </div>
+        {/* ── Quick Actions ── */}
+        <p className="mb-5 text-xl font-black uppercase tracking-tight text-white">
+          Quick Actions
+        </p>
+        <div
+          className="overflow-hidden p-5"
+          style={{
+            background: "linear-gradient(145deg, rgba(13,26,15,0.85) 0%, rgba(9,18,10,0.92) 100%)",
+            borderRadius: "18px",
+            border: "1px solid rgba(163,230,53,0.10)",
+          }}
+        >
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <ActionButton icon={MapPin}     label="Explore Map"     to="/dashboard/zones"   />
+            <ActionButton icon={PawPrint}   label="Report Sighting" to="/dashboard/animals" />
+            <ActionButton icon={Ticket}     label="Book Safari"     to="/dashboard/zones"   />
+            <ActionButton icon={HeartPulse} label="Health Alerts"   to="/dashboard/animals" />
           </div>
-
-          {/* ── Your Account ── */}
-          <div>
-            <p className="mb-5 text-xl font-black uppercase tracking-tight text-white">
-              Your Account
-            </p>
-            <div
-              className="overflow-hidden px-5 pt-2 pb-4"
-              style={{
-                background: "linear-gradient(145deg, rgba(13,26,15,0.85) 0%, rgba(9,18,10,0.92) 100%)",
-                borderRadius: "18px",
-                border: "1px solid rgba(163,230,53,0.10)",
-              }}
-            >
-              {/* Avatar row */}
-              <div
-                className="mb-1 flex items-center gap-3 py-4"
-                style={{ borderBottom: "1px solid rgba(255,255,255,0.05)" }}
-              >
-                <div
-                  className="flex h-12 w-12 shrink-0 items-center justify-center text-base font-black text-black"
-                  style={{
-                    background: "linear-gradient(135deg, #a3e635 0%, #7aa028 100%)",
-                    borderRadius: "50%",
-                    boxShadow: "0 0 20px rgba(163,230,53,0.25)",
-                  }}
-                >
-                  {`${user?.first_name?.[0] ?? ""}${user?.last_name?.[0] ?? ""}`.toUpperCase()}
-                </div>
-                <div>
-                  <p className="text-sm font-bold text-white/80">
-                    {user?.first_name} {user?.last_name}
-                  </p>
-                  <div className="flex items-center gap-1.5 mt-0.5">
-                    <Shield size={9} className="text-lime-300/50" />
-                    <span className="text-[9px] font-bold uppercase tracking-[0.25em] text-lime-300/55">
-                      {user?.role}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              <AccountRow label="User name"    value={user?.email ?? "—"} />
-              <AccountRow label="Account ID"   value={user?.visitor_id ? `#${user.visitor_id}` : "—"} />
-              <AccountRow
-                label="Member Since"
-                value={
-                  user?.created_at
-                    ? new Date(user.created_at).toLocaleDateString("en-IN", {
-                        year: "numeric",
-                        month: "short",
-                        day: "numeric",
-                      })
-                    : "—"
-                }
-              />
-              <AccountRow label="Account Alerts" value={user?.role ?? "—"} accent />
-
-              <div className="mt-3">
-                <Link
-                  to="/dashboard/profile"
-                  className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.25em] text-lime-300/45 transition hover:text-lime-300"
-                >
-                  Edit Profile <ArrowRight size={11} />
-                </Link>
-              </div>
-            </div>
-          </div>
-
         </div>
+
       </section>
 
       {/* Particle float animation */}
