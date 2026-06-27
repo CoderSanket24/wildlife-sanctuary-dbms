@@ -42,6 +42,21 @@ END;
 $$ LANGUAGE plpgsql;
 
 
+CREATE OR REPLACE FUNCTION fn_sync_visitor_to_staff()
+RETURNS TRIGGER AS $$
+BEGIN
+    -- If a user registers as a RANGER or ADMIN, provision their staff profile automatically
+    IF NEW.role IN ('RANGER', 'ADMIN') THEN
+        INSERT INTO staff (staff_id, first_name, last_name, role, email)
+        VALUES (NEW.visitor_id, NEW.first_name, NEW.last_name, NEW.role::VARCHAR, NEW.email)
+        ON CONFLICT (staff_id) DO UPDATE 
+        SET role = EXCLUDED.role, first_name = EXCLUDED.first_name, last_name = EXCLUDED.last_name;
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+
 CREATE OR REPLACE TRIGGER trg_pre_compute_ticket_billing
 BEFORE INSERT ON tickets
 FOR EACH ROW EXECUTE FUNCTION fn_calculate_ticket_costs();
@@ -49,6 +64,10 @@ FOR EACH ROW EXECUTE FUNCTION fn_calculate_ticket_costs();
 CREATE OR REPLACE TRIGGER trg_pre_validate_enclosure_capacity
 BEFORE INSERT ON animals
 FOR EACH ROW EXECUTE FUNCTION fn_enforce_enclosure_capacity();
+
+CREATE OR REPLACE TRIGGER trg_after_visitor_signup
+AFTER INSERT OR UPDATE OF role ON visitors
+FOR EACH ROW EXECUTE FUNCTION fn_sync_visitor_to_staff();
 
 
 CREATE OR REPLACE FUNCTION fn_book_safari_ticket(
