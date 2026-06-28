@@ -32,3 +32,82 @@ export const addNewZone = async (req, res) => {
         return res.status(500).json({ success: false, error: 'Internal system fault deploying sector maps.' });
     }
 }
+
+/* ── GET all zones (public) ── */
+export const getAllZones = async (req, res) => {
+    try {
+        const zones = await prisma.zone.findMany({
+            include: {
+                _count: {
+                    select: {
+                        enclosures: true,
+                        tickets: true,
+                    }
+                },
+                enclosures: {
+                    select: {
+                        current_occupancy: true,
+                    }
+                }
+            },
+            orderBy: { zone_id: 'asc' }
+        });
+
+        // Compute total animal count per zone from enclosure occupancies
+        const zonesWithStats = zones.map(zone => ({
+            ...zone,
+            enclosure_count: zone._count.enclosures,
+            ticket_count: zone._count.tickets,
+            total_animals: zone.enclosures.reduce((sum, e) => sum + e.current_occupancy, 0),
+            enclosures: undefined,
+            _count: undefined,
+        }));
+
+        return res.status(200).json({ success: true, zones: zonesWithStats });
+    } catch (error) {
+        console.error('🔥 Zone Fetch Error:', error);
+        return res.status(500).json({ success: false, error: 'Failed to retrieve sanctuary zones.' });
+    }
+};
+
+/* ── GET single zone with full enclosure + animal detail (public) ── */
+export const getZoneById = async (req, res) => {
+    try {
+        const zone_id = req.params.id;
+
+        if (isNaN(zone_id)) {
+            return res.status(400).json({ success: false, error: 'Invalid zone ID.' });
+        }
+
+        const zone = await prisma.zone.findUnique({
+            where: { zone_id },
+            include: {
+                enclosures: {
+                    include: {
+                        animals: {
+                            select: {
+                                animal_id: true,
+                                species: true,
+                                nickname: true,
+                                health_status: true,
+                            }
+                        }
+                    },
+                    orderBy: { enclosure_id: 'asc' }
+                },
+                _count: {
+                    select: { tickets: true }
+                }
+            }
+        });
+
+        if (!zone) {
+            return res.status(404).json({ success: false, error: 'Zone not found.' });
+        }
+
+        return res.status(200).json({ success: true, zone });
+    } catch (error) {
+        console.error('🔥 Zone Detail Fetch Error:', error);
+        return res.status(500).json({ success: false, error: 'Failed to retrieve zone details.' });
+    }
+};
