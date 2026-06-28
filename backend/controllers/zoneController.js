@@ -73,7 +73,7 @@ export const getAllZones = async (req, res) => {
 /* ── GET single zone with full enclosure + animal detail (public) ── */
 export const getZoneById = async (req, res) => {
     try {
-        const zone_id = req.params.id;
+        const zone_id = parseInt(req.params.id, 10);
 
         if (isNaN(zone_id)) {
             return res.status(400).json({ success: false, error: 'Invalid zone ID.' });
