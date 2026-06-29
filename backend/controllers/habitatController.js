@@ -59,3 +59,98 @@ export const registerAnimal = async (req, res) => {
     return res.status(500).json({ success: false, error: 'Critical server error writing animal record to disk.' });
   }
 };
+
+export const getAllAnimals = async (req, res) => {
+  try {
+    const { status, species, search } = req.query;
+
+    const where = {};
+    if (status)  where.health_status = status;
+    if (species) where.species = { contains: species, mode: 'insensitive' };
+    if (search)  where.OR = [
+      { species:         { contains: search, mode: 'insensitive' } },
+      { nickname:        { contains: search, mode: 'insensitive' } },
+      { scientific_name: { contains: search, mode: 'insensitive' } },
+    ];
+
+    const animals = await prisma.animal.findMany({
+      where,
+      include: {
+        enclosure: {
+          select: {
+            enclosure_id: true,
+            code_name:    true,
+            zone: {
+              select: { zone_id: true, name: true, climate: true }
+            }
+          }
+        },
+        _count: {
+          select: { surveys: true, health_logs: true }
+        }
+      },
+      orderBy: { animal_id: 'asc' }
+    });
+
+    return res.status(200).json({ success: true, animals });
+  } catch (error) {
+    console.error('🔥 Animal Fetch Error:', error);
+    return res.status(500).json({ success: false, error: 'Failed to retrieve animals.' });
+  }
+};
+
+export const getAnimalById = async (req, res) => {
+  try {
+    const animal_id = parseInt(req.params.id, 10);
+    if (isNaN(animal_id)) {
+      return res.status(400).json({ success: false, error: 'Invalid animal ID.' });
+    }
+
+    const animal = await prisma.animal.findUnique({
+      where: { animal_id },
+      include: {
+        enclosure: {
+          include: {
+            zone: { select: { zone_id: true, name: true, climate: true } }
+          }
+        },
+        health_logs: {
+          orderBy: { logged_at: 'desc' },
+          take: 10,
+          include: {
+            veterinarian: {
+              select: {
+                first_name: true,
+                last_name:  true,
+                role:       true,
+              }
+            }
+          }
+        },
+        surveys: {
+          orderBy: { survey_date: 'desc' },
+          take: 5,
+          select: {
+            survey_id:     true,
+            survey_date:   true,
+            sighting_count: true,
+            latitude:      true,
+            longitude:     true,
+          }
+        },
+        _count: {
+          select: { surveys: true, health_logs: true }
+        }
+      }
+    });
+
+    if (!animal) {
+      return res.status(404).json({ success: false, error: 'Animal not found.' });
+    }
+
+    return res.status(200).json({ success: true, animal });
+  } catch (error) {
+    console.error('🔥 Animal Detail Fetch Error:', error);
+    return res.status(500).json({ success: false, error: 'Failed to retrieve animal details.' });
+  }
+};
