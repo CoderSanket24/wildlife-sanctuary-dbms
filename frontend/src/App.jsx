@@ -7,6 +7,8 @@ import Dashboard from './pages/Dashboard'
 import Profile from './pages/Profile'
 import Zones from './pages/Zones'
 import ZoneDetail from './pages/ZoneDetail'
+import Animals from './pages/Animals'
+import AnimalDetail from './pages/AnimalDetail'
 import ProtectedRoute from './components/ProtectedRoute'
 
 const App = () => {
@@ -20,11 +22,13 @@ const App = () => {
 
         {/* ── Protected dashboard routes ── */}
         <Route element={<ProtectedRoute />}>
-          <Route path='/dashboard'              element={<Dashboard  />} />
-          <Route path='/dashboard/profile'      element={<Profile    />} />
-          <Route path='/dashboard/zones'        element={<Zones      />} />
-          <Route path='/dashboard/zones/:id'    element={<ZoneDetail />} />
-          {/* Coming soon: Animals, Tickets */}
+          <Route path='/dashboard'              element={<Dashboard    />} />
+          <Route path='/dashboard/profile'      element={<Profile      />} />
+          <Route path='/dashboard/zones'        element={<Zones        />} />
+          <Route path='/dashboard/zones/:id'    element={<ZoneDetail   />} />
+          <Route path='/dashboard/animals'      element={<Animals      />} />
+          <Route path='/dashboard/animals/:id'  element={<AnimalDetail />} />
+          {/* Coming soon: Tickets */}
         </Route>
       </Routes>
     </div>
