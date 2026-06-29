@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, Navigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import {
   Eye, EyeOff, Mail, Lock, User, Hash,
@@ -9,6 +9,7 @@ import {
 import heroImage from "../assets/image.png";
 import logo from "../assets/logo.png";
 import api from "../api/axiosInstance";
+import { useAuth } from "../context/AuthContext";
 
 /* ─────────────────────────────────────────────
    Reusable field component
@@ -124,10 +125,15 @@ const LeftPanel = () => {
 ───────────────────────────────────────────── */
 const SignUp = () => {
   const navigate = useNavigate();
+  const { user, loading } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [serverError, setServerError] = useState("");
   const [success, setSuccess] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+
+  // Already authenticated — send straight to dashboard
+  if (loading) return null;
+  if (user) return <Navigate to="/dashboard" replace />;
 
   const {
     register,
