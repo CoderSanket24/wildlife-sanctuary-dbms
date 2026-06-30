@@ -49,3 +49,29 @@ export const purchaseSafariTicket = async (req, res) => {
         return res.status(500).json({ success: false, error: 'Critical server failure processing ticket financial rows.' })
     }
 }
+
+export const getMyTickets = async (req, res) => {
+  try {
+    const { visitor_id } = req.user;
+
+    const tickets = await prisma.ticket.findMany({
+      where: { visitor_id },
+      orderBy: { booking_date: 'desc' },
+      include: {
+        zone: {
+          select: {
+            zone_id:      true,
+            name:         true,
+            climate:      true,
+            ticket_price: true,
+          }
+        }
+      }
+    });
+
+    return res.status(200).json({ success: true, tickets });
+  } catch (error) {
+    console.error('🔥 Ticket History Fetch Error:', error.message);
+    return res.status(500).json({ success: false, error: 'Failed to retrieve ticket history.' });
+  }
+};
