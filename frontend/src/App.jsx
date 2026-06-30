@@ -9,6 +9,7 @@ import Zones from './pages/Zones'
 import ZoneDetail from './pages/ZoneDetail'
 import Animals from './pages/Animals'
 import AnimalDetail from './pages/AnimalDetail'
+import Tickets from './pages/Tickets'
 import ProtectedRoute from './components/ProtectedRoute'
 
 const App = () => {
@@ -28,7 +29,7 @@ const App = () => {
           <Route path='/dashboard/zones/:id'    element={<ZoneDetail   />} />
           <Route path='/dashboard/animals'      element={<Animals      />} />
           <Route path='/dashboard/animals/:id'  element={<AnimalDetail />} />
-          {/* Coming soon: Tickets */}
+          <Route path='/dashboard/tickets'      element={<Tickets      />} />
         </Route>
       </Routes>
     </div>
