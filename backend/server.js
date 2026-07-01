@@ -9,6 +9,7 @@ import zoneRoutes from './routes/zoneRoutes.js'
 import habitatRoutes from './routes/habitatRoutes.js'
 import faunaRoutes from './routes/faunaRoutes.js'
 import healthRoutes from './routes/healthRoutes.js';
+import dashboardRoutes from './routes/dashboardRoutes.js';
 
 dotenv.config()
 patchBigInt()
@@ -22,12 +23,13 @@ app.use(cors({
   origin: process.env.FRONTEND_URL || 'http://localhost:5173',
   credentials: true, // Crucial parameter to allow HTTP-only session cookies to pass through the network
 }));
-app.use('/api/auth', authRoutes)
-app.use('/api/ticket', ticketRoutes)
-app.use('/api/zones', zoneRoutes)
+app.use('/api/auth',      authRoutes)
+app.use('/api/ticket',    ticketRoutes)
+app.use('/api/zones',     zoneRoutes)
 app.use('/api/sanctuary', habitatRoutes)
-app.use('/api/fauna', faunaRoutes)
-app.use('/api/medical', healthRoutes)
+app.use('/api/fauna',     faunaRoutes)
+app.use('/api/medical',   healthRoutes)
+app.use('/api/dashboard', dashboardRoutes)
 
 app.use((err, req, res, next) => {
     console.error('🔥 Internal System Fault Hooked:',err.stack);

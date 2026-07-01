@@ -127,3 +127,124 @@ SELECT
 FROM visitors
 GROUP BY age_demographic_bracket
 ORDER BY total_registered_count DESC;
+
+
+CREATE OR REPLACE VIEW vw_zone_summary AS
+SELECT
+    z.zone_id,
+    z.name                                              AS zone_name,
+    z.climate,
+    z.camera_traps_count,
+    z.ticket_price,
+
+    COUNT(DISTINCT e.enclosure_id)                      AS enclosure_count,
+    COUNT(DISTINCT a.animal_id)                         AS total_animals,
+    COALESCE(SUM(e.max_capacity), 0)                    AS total_capacity,
+    COALESCE(SUM(e.current_occupancy), 0)               AS total_occupancy,
+
+    -- Occupancy % rounded to 1 decimal place
+    CASE
+        WHEN COALESCE(SUM(e.max_capacity), 0) = 0 THEN 0
+        ELSE ROUND(
+            (COALESCE(SUM(e.current_occupancy), 0)::NUMERIC
+             / SUM(e.max_capacity)::NUMERIC) * 100, 1
+        )
+    END                                                 AS occupancy_pct,
+
+    COUNT(DISTINCT t.ticket_id)                         AS tickets_sold,
+    COALESCE(SUM(t.total_amount), 0)                   AS total_revenue
+
+FROM zones z
+LEFT JOIN enclosures     e ON e.zone_id      = z.zone_id
+LEFT JOIN animals        a ON a.enclosure_id = e.enclosure_id
+LEFT JOIN tickets        t ON t.zone_id      = z.zone_id
+GROUP BY z.zone_id, z.name, z.climate, z.camera_traps_count, z.ticket_price;
+
+
+CREATE OR REPLACE VIEW vw_animal_health_overview AS
+SELECT
+    a.animal_id,
+    a.species,
+    a.scientific_name,
+    a.nickname,
+    a.health_status,
+    a.birth_date,
+    a.date_joined,
+
+    e.enclosure_id,
+    e.code_name                                         AS enclosure_name,
+
+    z.zone_id,
+    z.name                                              AS zone_name,
+    z.climate,
+
+    COUNT(DISTINCT hl.log_id)                           AS health_log_count,
+    COUNT(DISTINCT s.survey_id)                         AS survey_count,
+    MAX(hl.logged_at)                                   AS last_health_check
+
+FROM animals a
+LEFT JOIN enclosures     e  ON e.enclosure_id = a.enclosure_id
+LEFT JOIN zones          z  ON z.zone_id      = e.zone_id
+LEFT JOIN health_logs    hl ON hl.animal_id   = a.animal_id
+LEFT JOIN animal_surveys s  ON s.animal_id    = a.animal_id
+GROUP BY
+    a.animal_id, a.species, a.scientific_name, a.nickname,
+    a.health_status, a.birth_date, a.date_joined,
+    e.enclosure_id, e.code_name,
+    z.zone_id, z.name, z.climate;
+
+
+CREATE OR REPLACE VIEW vw_health_alerts AS
+SELECT
+    a.animal_id,
+    a.species,
+    a.nickname,
+    a.health_status,
+
+    e.code_name                                         AS enclosure_name,
+    z.zone_id,
+    z.name                                              AS zone_name,
+
+    hl_latest.logged_at                                 AS last_logged_at,
+    hl_latest.diagnosis                                 AS last_diagnosis,
+    hl_latest.treatment                                 AS last_treatment,
+    hl_latest.require_isolation,
+
+    CONCAT(st.first_name, ' ', st.last_name)            AS attending_vet
+
+FROM animals a
+LEFT JOIN enclosures e ON e.enclosure_id = a.enclosure_id
+LEFT JOIN zones      z ON z.zone_id      = e.zone_id
+
+LEFT JOIN LATERAL (
+    SELECT hl.log_id, hl.logged_at, hl.diagnosis,
+           hl.treatment, hl.require_isolation, hl.veterinarian_id
+    FROM   health_logs hl
+    WHERE  hl.animal_id = a.animal_id
+    ORDER BY hl.logged_at DESC
+    LIMIT  1
+) hl_latest ON TRUE
+
+LEFT JOIN staff st ON st.staff_id = hl_latest.veterinarian_id
+
+WHERE a.health_status IN ('CRITICAL', 'UNDER_CARE');
+
+
+CREATE OR REPLACE VIEW vw_visitor_booking_summary AS
+SELECT
+    v.visitor_id,
+    v.first_name,
+    v.last_name,
+    v.email,
+    v.role,
+    v.created_at                                        AS member_since,
+
+    COUNT(DISTINCT t.ticket_id)                         AS total_bookings,
+    COUNT(DISTINCT t.zone_id)                           AS zones_visited,
+    COALESCE(SUM(t.total_amount),  0)                  AS total_spent,
+    COALESCE(AVG(t.total_amount),  0)                  AS avg_ticket_cost,
+    MAX(t.booking_date)                                 AS last_booking_date
+
+FROM visitors v
+LEFT JOIN tickets t ON t.visitor_id = v.visitor_id
+GROUP BY v.visitor_id, v.first_name, v.last_name, v.email, v.role, v.created_at;
