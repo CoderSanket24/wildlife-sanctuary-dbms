@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Ticket, Plus, IndianRupee } from "lucide-react";
+import { Ticket, Plus, IndianRupee, MapPin } from "lucide-react";
 import DashboardLayout from "../components/DashboardLayout";
 import PageHeader from "../components/ui/PageHeader";
 import LoadingSpinner from "../components/ui/LoadingSpinner";
@@ -34,6 +34,7 @@ const TicketSkeleton = () => (
 const Tickets = () => {
   const { user }      = useAuth();
   const [tickets, setTickets]   = useState([]);
+  const [summary, setSummary]   = useState(null);
   const [loading, setLoading]   = useState(true);
   const [error, setError]       = useState(null);
   const [showModal, setShowModal] = useState(false);
@@ -43,6 +44,7 @@ const Tickets = () => {
       setLoading(true);
       const res = await api.get("/ticket/my");
       setTickets(res.data.tickets);
+      setSummary(res.data.summary);   // from vw_visitor_booking_summary
     } catch (err) {
       setError(err.response?.data?.error ?? "Failed to load tickets.");
     } finally {
@@ -52,14 +54,10 @@ const Tickets = () => {
 
   useEffect(() => { fetchTickets(); }, []);
 
-  /* Prepend newly booked ticket and close modal */
+  /* Prepend newly booked ticket — summary will refresh on next fetch */
   const handleBooked = (newTicket) => {
     setTickets(prev => [newTicket, ...prev]);
   };
-
-  /* Spend summary */
-  const totalSpent = tickets.reduce((sum, t) => sum + parseFloat(t.total_amount), 0);
-  const zonesVisited = new Set(tickets.map(t => t.zone_id)).size;
 
   return (
     <DashboardLayout>
@@ -85,8 +83,8 @@ const Tickets = () => {
           </button>
         </div>
 
-        {/* ── Summary chips (only when loaded with data) ── */}
-        {!loading && !error && tickets.length > 0 && (
+        {/* ── Summary chips — sourced from vw_visitor_booking_summary ── */}
+        {!loading && !error && tickets.length > 0 && summary && (
           <div className="mb-8 flex flex-wrap gap-3">
             {/* Total bookings */}
             <div
@@ -95,9 +93,9 @@ const Tickets = () => {
             >
               <Ticket size={14} style={{ color: "rgba(163,230,53,0.55)" }} />
               <div>
-                <p className="text-xl font-black text-white">{tickets.length}</p>
+                <p className="text-xl font-black text-white">{summary.total_bookings}</p>
                 <p className="text-[9px] font-bold uppercase tracking-[0.22em] text-white/28">
-                  {tickets.length === 1 ? "Booking" : "Bookings"}
+                  {summary.total_bookings === 1 ? "Booking" : "Bookings"}
                 </p>
               </div>
             </div>
@@ -107,10 +105,11 @@ const Tickets = () => {
               className="flex items-center gap-3 px-5 py-3"
               style={{ background: "rgba(163,230,53,0.06)", border: "1px solid rgba(163,230,53,0.12)", borderRadius: "12px" }}
             >
-              <div className="text-lg font-black text-white">{zonesVisited}</div>
+              <MapPin size={14} style={{ color: "rgba(163,230,53,0.55)" }} />
               <div>
+                <p className="text-xl font-black text-white">{summary.zones_visited}</p>
                 <p className="text-[9px] font-bold uppercase tracking-[0.22em] text-white/28">
-                  {zonesVisited === 1 ? "Zone Visited" : "Zones Visited"}
+                  {summary.zones_visited === 1 ? "Zone Visited" : "Zones Visited"}
                 </p>
               </div>
             </div>
@@ -123,9 +122,23 @@ const Tickets = () => {
               <IndianRupee size={14} style={{ color: "rgba(212,168,83,0.70)" }} />
               <div>
                 <p className="text-xl font-black" style={{ color: "#f5dfa0" }}>
-                  {totalSpent.toLocaleString("en-IN")}
+                  {summary.total_spent.toLocaleString("en-IN")}
                 </p>
                 <p className="text-[9px] font-bold uppercase tracking-[0.22em] text-white/28">Total Spent</p>
+              </div>
+            </div>
+
+            {/* Avg ticket cost — from view */}
+            <div
+              className="flex items-center gap-3 px-5 py-3"
+              style={{ background: "rgba(96,165,250,0.06)", border: "1px solid rgba(96,165,250,0.15)", borderRadius: "12px" }}
+            >
+              <IndianRupee size={14} style={{ color: "rgba(96,165,250,0.70)" }} />
+              <div>
+                <p className="text-xl font-black" style={{ color: "#93c5fd" }}>
+                  {summary.avg_ticket_cost.toLocaleString("en-IN", { maximumFractionDigits: 0 })}
+                </p>
+                <p className="text-[9px] font-bold uppercase tracking-[0.22em] text-white/28">Avg Cost</p>
               </div>
             </div>
           </div>

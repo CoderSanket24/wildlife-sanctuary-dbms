@@ -50,26 +50,55 @@ export const purchaseSafariTicket = async (req, res) => {
     }
 }
 
+/* ── GET /api/ticket/my  ── visitor's ticket history + spend summary ── */
 export const getMyTickets = async (req, res) => {
   try {
     const { visitor_id } = req.user;
 
-    const tickets = await prisma.ticket.findMany({
-      where: { visitor_id },
-      orderBy: { booking_date: 'desc' },
-      include: {
-        zone: {
-          select: {
-            zone_id:      true,
-            name:         true,
-            climate:      true,
-            ticket_price: true,
+    // Run both queries in parallel:
+    // 1. Full ticket list (with zone detail) — Prisma relational query
+    // 2. Aggregated spend summary from vw_visitor_booking_summary
+    const [tickets, summaryRows] = await Promise.all([
+      prisma.ticket.findMany({
+        where: { visitor_id },
+        orderBy: { booking_date: 'desc' },
+        include: {
+          zone: {
+            select: {
+              zone_id:      true,
+              name:         true,
+              climate:      true,
+              ticket_price: true,
+            }
           }
         }
-      }
-    });
+      }),
 
-    return res.status(200).json({ success: true, tickets });
+      prisma.$queryRaw`
+        SELECT
+          total_bookings,
+          zones_visited,
+          total_spent,
+          avg_ticket_cost,
+          last_booking_date
+        FROM vw_visitor_booking_summary
+        WHERE visitor_id = ${visitor_id}
+      `,
+    ]);
+
+    const summary = summaryRows[0] ?? null;
+
+    return res.status(200).json({
+      success: true,
+      tickets,
+      summary: summary ? {
+        total_bookings:    Number(summary.total_bookings),
+        zones_visited:     Number(summary.zones_visited),
+        total_spent:       parseFloat(summary.total_spent),
+        avg_ticket_cost:   parseFloat(summary.avg_ticket_cost),
+        last_booking_date: summary.last_booking_date,
+      } : null,
+    });
   } catch (error) {
     console.error('🔥 Ticket History Fetch Error:', error.message);
     return res.status(500).json({ success: false, error: 'Failed to retrieve ticket history.' });
