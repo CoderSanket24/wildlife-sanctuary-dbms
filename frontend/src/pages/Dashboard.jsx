@@ -5,6 +5,7 @@ import { useAuth } from "../context/AuthContext";
 import DashboardLayout from "../components/DashboardLayout";
 import DashboardStatCard from "../components/dashboard/DashboardStatCard";
 import QuickActionButton from "../components/dashboard/QuickActionButton";
+import useDashboardStats from "../hooks/useDashboardStats";
 import heroImage from "../assets/image.png";
 
 /* ── Floating particle dot ── */
@@ -12,11 +13,11 @@ const Particle = ({ style }) => (
   <div
     className="pointer-events-none absolute rounded-full"
     style={{
-      width:     "3px",
-      height:    "3px",
+      width:      "3px",
+      height:     "3px",
       background: "rgba(163,230,53,0.55)",
-      boxShadow: "0 0 6px 2px rgba(163,230,53,0.25)",
-      animation: "floatUp 6s ease-in-out infinite",
+      boxShadow:  "0 0 6px 2px rgba(163,230,53,0.25)",
+      animation:  "floatUp 6s ease-in-out infinite",
       ...style,
     }}
   />
@@ -30,22 +31,55 @@ const PARTICLES = [
   { left: "86%", top: "60%", animationDuration: "5s",   animationDelay: "0.3s" },
 ];
 
-const STAT_CARDS = [
-  { icon: LayoutGrid,  label: "Active Zones",    value: "—", to: "/dashboard/zones",   variant: "lime"  },
-  { icon: PawPrint,   label: "Animals Tracked", value: "—", to: "/dashboard/animals", variant: "lime"  },
-  { icon: Ticket,     label: "My Bookings",     value: "—", to: "/dashboard/tickets", variant: "lime"  },
-  { icon: HeartPulse, label: "Health Alerts",   value: "—", to: "/dashboard/animals", variant: "amber" },
-];
-
 const QUICK_ACTIONS = [
   { icon: MapPin,      label: "Explore Map",     to: "/dashboard/zones"   },
-  { icon: PawPrint,   label: "Report Sighting",  to: "/dashboard/animals" },
-  { icon: Ticket,     label: "Book Safari",      to: "/dashboard/zones"   },
-  { icon: HeartPulse, label: "Health Alerts",    to: "/dashboard/animals" },
+  { icon: PawPrint,    label: "View Animals",    to: "/dashboard/animals" },
+  { icon: Ticket,      label: "Book Safari",     to: "/dashboard/tickets" },
+  { icon: HeartPulse,  label: "Health Alerts",   to: "/dashboard/animals" },
 ];
 
+/* ════════════════════════════════════════
+   DASHBOARD PAGE
+════════════════════════════════════════ */
 const Dashboard = () => {
-  const { user } = useAuth();
+  const { user }                    = useAuth();
+  const { stats, loading }          = useDashboardStats();
+
+  /* Build stat card config with live values */
+  const statCards = [
+    {
+      icon:    LayoutGrid,
+      label:   "Active Zones",
+      value:   stats.active_zones ?? "—",
+      to:      "/dashboard/zones",
+      variant: "lime",
+      loading,
+    },
+    {
+      icon:    PawPrint,
+      label:   "Animals Tracked",
+      value:   stats.animals_tracked ?? "—",
+      to:      "/dashboard/animals",
+      variant: "lime",
+      loading,
+    },
+    {
+      icon:    Ticket,
+      label:   "My Bookings",
+      value:   stats.my_bookings ?? "—",
+      to:      "/dashboard/tickets",
+      variant: "lime",
+      loading,
+    },
+    {
+      icon:    HeartPulse,
+      label:   "Health Alerts",
+      value:   stats.health_alerts ?? "—",
+      to:      "/dashboard/animals",
+      variant: "amber",
+      loading,
+    },
+  ];
 
   return (
     <DashboardLayout>
@@ -63,7 +97,7 @@ const Dashboard = () => {
           minHeight:          "320px",
         }}
       >
-        {/* Bottom fade — eliminates hard image edge */}
+        {/* Bottom fade */}
         <div
           className="pointer-events-none absolute inset-0"
           style={{ background: "linear-gradient(180deg, rgba(6,14,7,0.30) 0%, rgba(6,14,7,0) 30%, rgba(6,14,7,0) 55%, rgba(6,14,7,1) 100%)" }}
@@ -116,7 +150,7 @@ const Dashboard = () => {
       {/* ── Stat cards ── */}
       <section className="px-6 pt-8 pb-2 md:px-10 xl:px-16">
         <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
-          {STAT_CARDS.map(s => (
+          {statCards.map(s => (
             <DashboardStatCard key={s.label} {...s} />
           ))}
         </div>

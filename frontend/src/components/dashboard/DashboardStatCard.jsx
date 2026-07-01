@@ -11,8 +11,9 @@ import { Link } from "react-router-dom";
  * @param {string|number}     value   - The statistic to display (e.g. "12" or "—").
  * @param {string}            to      - React Router path the card links to.
  * @param {"lime"|"amber"}    variant - Colour theme. Defaults to "lime".
+ * @param {boolean}           loading - When true renders a shimmer skeleton instead of the value.
  */
-const DashboardStatCard = ({ icon: Icon, label, value, to, variant = "lime" }) => {
+const DashboardStatCard = ({ icon: Icon, label, value, to, variant = "lime", loading = false }) => {
   const isAmber = variant === "amber";
 
   const tokens = isAmber
@@ -95,12 +96,26 @@ const DashboardStatCard = ({ icon: Icon, label, value, to, variant = "lime" }) =
 
       {/* Value + label */}
       <div>
-        <p
-          className="text-5xl font-black leading-none tracking-tight"
-          style={{ color: tokens.valueColor }}
-        >
-          {value}
-        </p>
+        {loading ? (
+          /* Shimmer skeleton while stat is fetching */
+          <div
+            className="animate-pulse"
+            style={{
+              width:        "80px",
+              height:       "44px",
+              background:   `${tokens.glow}`,
+              borderRadius: "8px",
+              opacity:      0.4,
+            }}
+          />
+        ) : (
+          <p
+            className="text-5xl font-black leading-none tracking-tight"
+            style={{ color: tokens.valueColor }}
+          >
+            {value}
+          </p>
+        )}
         <p
           className="mt-2 text-[12px] font-semibold tracking-wide"
           style={{ color: tokens.labelColor }}
