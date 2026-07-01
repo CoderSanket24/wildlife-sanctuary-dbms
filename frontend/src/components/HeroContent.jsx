@@ -1,4 +1,34 @@
 import React from "react";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
+
+/**
+ * Smart "Plan a Visit" CTA.
+ * - Guest       → /signin  (with `from` state so SignIn can redirect back after login)
+ * - Logged in   → /dashboard/zones
+ */
+const PlanVisitButton = () => {
+  const { user, loading } = useAuth();
+  const navigate = useNavigate();
+
+  const handleClick = () => {
+    if (loading) return; // still verifying session — do nothing
+    if (user) {
+      navigate("/dashboard/zones");
+    } else {
+      navigate("/signin", { state: { from: "/dashboard/zones" } });
+    }
+  };
+
+  return (
+    <button
+      onClick={handleClick}
+      className="border border-lime-400/80 px-6 py-3 text-sm font-semibold uppercase tracking-[0.22em] text-white transition hover:bg-lime-400 hover:text-black"
+    >
+      Plan a Visit
+    </button>
+  );
+};
 
 const HeroContent = () => {
   return (
@@ -38,12 +68,7 @@ const HeroContent = () => {
 
       {/* CTA Buttons */}
       <div className="mt-8 flex flex-wrap items-center gap-4">
-        <a
-          href="#visit"
-          className="border border-lime-400/80 px-6 py-3 text-sm font-semibold uppercase tracking-[0.22em] text-white transition hover:bg-lime-400 hover:text-black"
-        >
-          Plan a Visit
-        </a>
+        <PlanVisitButton />
         <a
           href="#learn"
           className="text-sm font-semibold uppercase tracking-[0.24em] text-white/70 transition hover:text-white"

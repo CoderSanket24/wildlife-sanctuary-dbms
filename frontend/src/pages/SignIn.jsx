@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Link, useNavigate, Navigate } from "react-router-dom";
+import { Link, useNavigate, Navigate, useLocation } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { Eye, EyeOff, Mail, Lock, AlertCircle, ArrowRight } from "lucide-react";
 import heroImage from "../assets/image.png";
@@ -9,7 +9,10 @@ import { useAuth } from "../context/AuthContext";
 
 const SignIn = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, loading, loginUser } = useAuth();
+  // Where to send the user after login — defaults to /dashboard
+  const redirectTo = location.state?.from || "/dashboard";
   const [showPassword, setShowPassword] = useState(false);
   const [serverError, setServerError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -30,7 +33,7 @@ const SignIn = () => {
     try {
       const res = await api.post("/auth/login", data);
       loginUser(res.data.user);
-      navigate("/dashboard");
+      navigate(redirectTo, { replace: true });
     } catch (err) {
       const msg = err.response?.data?.message || "Login failed. Please try again.";
       setServerError(msg);
