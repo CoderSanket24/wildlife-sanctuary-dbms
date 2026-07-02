@@ -2,6 +2,7 @@ import React from "react";
 import { Link } from "react-router-dom";
 import logo from "../assets/logo.png";
 import { MapPin, Phone, Mail, Clock, ArrowUpRight } from "lucide-react";
+import { useAuth } from "../context/AuthContext";
 
 const InstagramIcon = () => (
   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -32,12 +33,12 @@ const XIcon = () => (
 
 
 const quickLinks = [
-  { label: "Home",        to: "/" },
-  { label: "About Us",   to: "/" },
-  { label: "Destinations", to: "/" },
-  { label: "Our Services", to: "/" },
-  { label: "Plan a Visit", to: "/" },
-  { label: "Contact",    to: "/" },
+  { label: "Home",         to: "/"       },
+  { label: "About Us",    to: "/about"  },
+  { label: "Destinations", to: "/"      },
+  { label: "Our Services", to: "/"      },
+  { label: "Plan a Visit", to: "/"      },
+  { label: "Contact",     to: "/"       },
 ];
 
 const experiences = [
@@ -57,6 +58,8 @@ const socials = [
 ];
 
 const Footer = () => {
+  const { user } = useAuth();
+  const safariTo  = user ? "/dashboard/zones" : "/signin";
   return (
     <footer className="w-full border-t border-white/8 bg-[#050705]">
       {/* ── Top band ── */}
@@ -170,7 +173,7 @@ const Footer = () => {
 
             {/* CTA */}
             <Link
-              to="/"
+              to={safariTo}
               className="mt-6 inline-flex items-center gap-2 border border-lime-400/70 px-5 py-2.5 text-xs font-semibold uppercase tracking-[0.24em] text-white transition hover:bg-lime-400 hover:text-black"
             >
               Book a Safari
