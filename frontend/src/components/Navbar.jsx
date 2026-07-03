@@ -18,10 +18,10 @@ const Navbar = () => {
   };
 
   const navLinks = [
-    { label: "Home", to: "/" },
-    { label: "About us", to: "/" },
-    { label: "Destinations", to: "/" },
-    { label: "Our services", to: "/" },
+    { label: "Home",        to: "/"       },
+    { label: "About us",   to: "/about"  },
+    { label: "Destinations", to: "/"     },
+    { label: "Our services", to: "/"     },
   ];
 
   return (
