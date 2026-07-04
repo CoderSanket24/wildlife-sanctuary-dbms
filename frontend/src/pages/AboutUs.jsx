@@ -216,7 +216,7 @@ const AboutUs = () => {
 
       {/* ══════ HERO ══════ */}
       <div
-        className="relative min-h-[520px] overflow-hidden"
+        className="relative min-h-130 overflow-hidden"
         style={{
           backgroundImage: `
             linear-gradient(180deg, rgba(5,10,6,0.30) 0%, rgba(5,10,6,0) 40%, rgba(5,10,6,0) 55%, rgba(5,10,6,1) 100%),
@@ -234,12 +234,12 @@ const AboutUs = () => {
         />
 
         {/* Navbar */}
-        <div className="mx-auto w-full max-w-[1400px] px-6 pt-4 md:px-10 xl:px-16">
+        <div className="mx-auto w-full max-w-350 px-6 pt-4 md:px-10 xl:px-16">
           <Navbar />
         </div>
 
         {/* Hero text */}
-        <div className="relative mx-auto w-full max-w-[1400px] px-6 pb-28 pt-16 md:px-10 xl:px-16">
+        <div className="relative mx-auto w-full max-w-350 px-6 pb-28 pt-16 md:px-10 xl:px-16">
           <Eyebrow>Our Story · Since 2008</Eyebrow>
           <h1 className="max-w-2xl text-5xl font-black uppercase leading-none tracking-tighter text-white md:text-6xl xl:text-7xl">
             Guardians of{" "}
@@ -273,7 +273,7 @@ const AboutUs = () => {
       </div>
 
       {/* ══════ STATS STRIP ══════ */}
-      <section className="mx-auto w-full max-w-[1400px] px-6 py-16 md:px-10 xl:px-16">
+      <section className="mx-auto w-full max-w-350 px-6 py-16 md:px-10 xl:px-16">
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           {STATS.map(s => <StatCard key={s.label} {...s} />)}
         </div>
@@ -281,7 +281,7 @@ const AboutUs = () => {
 
       {/* ══════ MISSION STATEMENT ══════ */}
       <section
-        className="mx-auto w-full max-w-[1400px] px-6 py-16 md:px-10 xl:px-16"
+        className="mx-auto w-full max-w-350 px-6 py-16 md:px-10 xl:px-16"
       >
         <div
           className="relative overflow-hidden p-10 md:p-14"
@@ -323,7 +323,7 @@ const AboutUs = () => {
       </section>
 
       {/* ══════ CORE VALUES ══════ */}
-      <section className="mx-auto w-full max-w-[1400px] px-6 py-16 md:px-10 xl:px-16">
+      <section className="mx-auto w-full max-w-350 px-6 py-16 md:px-10 xl:px-16">
         <Eyebrow>What We Stand For</Eyebrow>
         <h2 className="mb-12 text-3xl font-black uppercase tracking-tight text-white md:text-4xl">
           Our <span style={{ color: "#a3e635" }}>Core Values</span>
@@ -334,7 +334,7 @@ const AboutUs = () => {
       </section>
 
       {/* ══════ TIMELINE ══════ */}
-      <section className="mx-auto w-full max-w-[1400px] px-6 py-16 md:px-10 xl:px-16">
+      <section className="mx-auto w-full max-w-350 px-6 py-16 md:px-10 xl:px-16">
         <div className="grid gap-12 lg:grid-cols-2 lg:items-start">
           {/* Left: heading */}
           <div className="lg:sticky lg:top-24">
@@ -369,7 +369,7 @@ const AboutUs = () => {
       </section>
 
       {/* ══════ TEAM ══════ */}
-      <section className="mx-auto w-full max-w-[1400px] px-6 py-16 md:px-10 xl:px-16">
+      <section className="mx-auto w-full max-w-350 px-6 py-16 md:px-10 xl:px-16">
         <Eyebrow>The People Behind the Mission</Eyebrow>
         <h2 className="mb-12 text-3xl font-black uppercase tracking-tight text-white md:text-4xl">
           Meet Our <span style={{ color: "#a3e635" }}>Team</span>
@@ -380,7 +380,7 @@ const AboutUs = () => {
       </section>
 
       {/* ══════ CONTACT STRIP ══════ */}
-      <section className="mx-auto w-full max-w-[1400px] px-6 py-16 md:px-10 xl:px-16">
+      <section className="mx-auto w-full max-w-350 px-6 py-16 md:px-10 xl:px-16">
         <div
           className="grid gap-8 p-10 md:grid-cols-3 md:p-14"
           style={{
@@ -435,7 +435,7 @@ const AboutUs = () => {
       </section>
 
       {/* ══════ CTA BANNER ══════ */}
-      <section className="mx-auto w-full max-w-[1400px] px-6 pb-24 md:px-10 xl:px-16">
+      <section className="mx-auto w-full max-w-350 px-6 pb-24 md:px-10 xl:px-16">
         <div
           className="relative overflow-hidden px-10 py-16 text-center md:px-20"
           style={{
