@@ -191,7 +191,33 @@ The database uses **PostgreSQL** with the following models managed by Prisma:
    npx prisma migrate dev
    ```
 
-5. **Generate Prisma client:**
+5. **Apply the core database extensions:**
+
+   After the Prisma schema is in place, run [`backend/database/core_extension.sql`](backend/database/core_extension.sql) against the same PostgreSQL database. This script installs all trigger functions, helper functions, and analytics views that sit on top of the Prisma-managed tables:
+
+   | Object | Type | Purpose |
+   |---|---|---|
+   | `fn_calculate_ticket_costs` | Trigger Function | Auto-computes `base_cost`, 18% GST, and `total_amount` on ticket insert |
+   | `fn_enforce_enclosure_capacity` | Trigger Function | Blocks animal inserts when enclosure is full; increments `current_occupancy` |
+   | `fn_sync_visitor_to_staff` | Trigger Function | Auto-creates a staff record when a visitor registers as `RANGER` or `ADMIN` |
+   | `fn_book_safari_ticket` | Function | Validates visitor & zone, then inserts a ticket in a DB transaction |
+   | `v_zone_popularity_analytics` | View | Zone bookings, revenue, and avg ticket yield |
+   | `v_visitor_age_demographics` | View | Visitor age bracket distribution |
+   | `vw_zone_summary` | View | Per-zone enclosure count, occupancy %, and revenue |
+   | `vw_animal_health_overview` | View | Animal details with health log and survey counts |
+   | `vw_health_alerts` | View | Animals currently `CRITICAL` or `UNDER_CARE` with latest vet note |
+   | `vw_visitor_booking_summary` | View | Per-visitor booking history and total spend |
+
+   **Using `psql`:**
+   ```bash
+   psql -U <user> -d <database> -f backend/database/core_extension.sql
+   ```
+
+   **Using pgAdmin / any SQL client:** open `backend/database/core_extension.sql` and execute it against your `wildlife_db` database.
+
+   > ⚠️ **This step is required.** The ticket billing, enclosure capacity enforcement, and dashboard analytics will not work correctly without it.
+
+6. **Generate Prisma client:**
    ```bash
    npx prisma generate
    ```
