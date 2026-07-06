@@ -336,7 +336,7 @@ const Contact = () => (
 
     {/* ══ HERO ══ */}
     <div
-      className="relative min-h-[420px] overflow-hidden"
+      className="relative min-h-105 overflow-hidden"
       style={{
         backgroundImage: `
           linear-gradient(180deg, rgba(5,10,6,0.25) 0%, rgba(5,10,6,0) 35%, rgba(5,10,6,0) 55%, rgba(5,10,6,1) 100%),
@@ -352,11 +352,11 @@ const Contact = () => (
         style={{ background: "radial-gradient(ellipse at 8% 60%, rgba(122,160,40,0.18) 0%, transparent 46%)" }}
       />
 
-      <div className="mx-auto w-full max-w-[1400px] px-6 pt-4 md:px-10 xl:px-16">
+      <div className="mx-auto w-full max-w-350 px-6 pt-4 md:px-10 xl:px-16">
         <Navbar />
       </div>
 
-      <div className="relative mx-auto w-full max-w-[1400px] px-6 pb-24 pt-14 md:px-10 xl:px-16">
+      <div className="relative mx-auto w-full max-w-350 px-6 pb-24 pt-14 md:px-10 xl:px-16">
         <Eyebrow>Reach Out</Eyebrow>
         <h1 className="max-w-xl text-5xl font-black uppercase leading-none tracking-tighter text-white md:text-6xl xl:text-7xl">
           Contact{" "}
@@ -372,7 +372,7 @@ const Contact = () => (
     </div>
 
     {/* ══ MAIN CONTENT ══ */}
-    <section className="mx-auto w-full max-w-[1400px] px-6 py-16 md:px-10 xl:px-16">
+    <section className="mx-auto w-full max-w-350 px-6 py-16 md:px-10 xl:px-16">
       <div className="grid gap-10 lg:grid-cols-[1fr_1.1fr] lg:items-start">
 
         {/* ── Left col: info + socials ── */}
@@ -433,7 +433,7 @@ const Contact = () => (
     </section>
 
     {/* ══ MAP PLACEHOLDER ══ */}
-    <section className="mx-auto w-full max-w-[1400px] px-6 pb-24 md:px-10 xl:px-16">
+    <section className="mx-auto w-full max-w-350 px-6 pb-24 md:px-10 xl:px-16">
       <Eyebrow>Our Location</Eyebrow>
       <h2 className="mb-8 text-2xl font-black uppercase tracking-tight text-white md:text-3xl">
         Find the <span style={{ color: "#a3e635" }}>Sanctuary</span>
