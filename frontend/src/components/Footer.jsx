@@ -31,15 +31,14 @@ const XIcon = () => (
   </svg>
 );
 
-
 const quickLinks = [
-  { label: "Home",         to: "/"       },
-  { label: "About Us",    to: "/about"  },
-  { label: "Destinations", to: "/"      },
-  { label: "Our Services", to: "/"      },
-  { label: "Plan a Visit", to: "/"      },
-  { label: "Contact",     to: "/"       },
+  { label: "Home",         to: "/"         },
+  { label: "About Us",    to: "/about"    },
+  { label: "Our Services", to: "/services" },
+  { label: "Plan a Visit", to: "/"         },
+  { label: "Contact",     to: "/contact"  },
 ];
+
 
 const experiences = [
   "Guided Jungle Safari",

@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Menu, X, LogOut, LayoutDashboard, ChevronDown, User } from "lucide-react";
 import logo from "../assets/logo.png";
 import { useAuth } from "../context/AuthContext";
@@ -9,6 +9,11 @@ const Navbar = () => {
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const { user, loading, logoutUser } = useAuth();
   const navigate = useNavigate();
+  const { pathname } = useLocation();
+
+  // Exact match for '/', prefix match for everything else
+  const isActive = (to) =>
+    to === "/" ? pathname === "/" : pathname.startsWith(to);
 
   const handleLogout = async () => {
     await logoutUser();
@@ -18,10 +23,10 @@ const Navbar = () => {
   };
 
   const navLinks = [
-    { label: "Home",        to: "/"       },
-    { label: "About us",   to: "/about"  },
-    { label: "Destinations", to: "/"     },
-    { label: "Our services", to: "/"     },
+    { label: "Home",         to: "/"         },
+    { label: "About us",    to: "/about"    },
+    { label: "Our services", to: "/services" },
+    { label: "Contact",     to: "/contact"  },
   ];
 
   return (
@@ -41,7 +46,9 @@ const Navbar = () => {
           <Link
             key={label}
             to={to}
-            className="text-sm font-semibold uppercase tracking-[0.22em] text-white/80 transition hover:text-white first:text-lime-300"
+            className={`text-sm font-semibold uppercase tracking-[0.22em] transition hover:text-white ${
+              isActive(to) ? "text-lime-300" : "text-white/80"
+            }`}
           >
             {label}
           </Link>
@@ -127,12 +134,12 @@ const Navbar = () => {
       {/* ── Mobile dropdown ── */}
       {mobileOpen && (
         <div className="absolute top-full left-0 right-0 z-50 mt-2 flex flex-col gap-4 rounded-xl border border-white/10 bg-black/80 px-6 py-6 backdrop-blur-xl lg:hidden">
-          {navLinks.map(({ label, to }, i) => (
+          {navLinks.map(({ label, to }) => (
             <Link
               key={label}
               to={to}
               className={`text-sm font-semibold uppercase tracking-[0.22em] transition hover:text-white ${
-                i === 0 ? "text-lime-300" : "text-white/80"
+                isActive(to) ? "text-lime-300" : "text-white/80"
               }`}
               onClick={() => setMobileOpen(false)}
             >
