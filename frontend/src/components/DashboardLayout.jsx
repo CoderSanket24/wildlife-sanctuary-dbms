@@ -9,11 +9,12 @@ import {
   LogOut,
   Menu,
   X,
+  Shield,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import logo from "../assets/logo.png";
 
-const navItems = [
+const BASE_NAV = [
   { to: "/dashboard",         icon: LayoutDashboard, label: "Overview"   },
   { to: "/dashboard/zones",   icon: MapPin,           label: "Zones"     },
   { to: "/dashboard/animals", icon: PawPrint,         label: "Animals"   },
@@ -21,10 +22,17 @@ const navItems = [
   { to: "/dashboard/profile", icon: User,             label: "Profile"   },
 ];
 
+const ADMIN_NAV = { to: "/dashboard/admin", icon: Shield, label: "Admin" };
+
 const DashboardLayout = ({ children }) => {
   const { user, logoutUser } = useAuth();
   const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
+
+  // Build nav items — add Admin tab for ADMIN role users
+  const navItems = user?.role === "ADMIN"
+    ? [...BASE_NAV, ADMIN_NAV]
+    : BASE_NAV;
 
   const handleLogout = async () => {
     await logoutUser();
