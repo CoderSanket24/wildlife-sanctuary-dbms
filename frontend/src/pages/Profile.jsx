@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   User,
@@ -9,10 +9,15 @@ import {
   Leaf,
   ArrowRight,
   LogOut,
+  Ticket,
+  MapPin,
+  IndianRupee,
+  TrendingUp,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import DashboardLayout from "../components/DashboardLayout";
 import { useNavigate } from "react-router-dom";
+import api from "../api/axiosInstance";
 
 /* ── single info row ── */
 const InfoRow = ({ icon: Icon, label, value, accent }) => (
@@ -54,6 +59,14 @@ const InfoRow = ({ icon: Icon, label, value, accent }) => (
 const Profile = () => {
   const { user, logoutUser } = useAuth();
   const navigate = useNavigate();
+  const [summary, setSummary] = useState(null);
+
+  /* Fetch visitor booking summary from the view-backed endpoint */
+  useEffect(() => {
+    api.get("/ticket/my")
+      .then(res => setSummary(res.data.summary))
+      .catch(() => {}); // non-critical — page still works without it
+  }, []);
 
   const initials =
     user
@@ -266,6 +279,66 @@ const Profile = () => {
             Your visits directly fund conservation efforts and animal welfare programs.
           </p>
         </div>
+
+        {/* ── Activity Stats (from vw_visitor_booking_summary) ── */}
+        {summary && (
+          <div className="mt-6">
+            <p className="mb-4 text-[10px] font-bold uppercase tracking-[0.35em] text-white/25">
+              Your Activity
+            </p>
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+              {/* Total Bookings */}
+              <div
+                className="flex flex-col gap-2 p-4"
+                style={{ background: "rgba(163,230,53,0.05)", border: "1px solid rgba(163,230,53,0.12)", borderRadius: "14px" }}
+              >
+                <Ticket size={14} style={{ color: "rgba(163,230,53,0.55)" }} />
+                <p className="text-2xl font-black text-white">{summary.total_bookings}</p>
+                <p className="text-[9px] font-bold uppercase tracking-[0.22em] text-white/28">
+                  {summary.total_bookings === 1 ? "Booking" : "Bookings"}
+                </p>
+              </div>
+
+              {/* Zones Visited */}
+              <div
+                className="flex flex-col gap-2 p-4"
+                style={{ background: "rgba(163,230,53,0.05)", border: "1px solid rgba(163,230,53,0.12)", borderRadius: "14px" }}
+              >
+                <MapPin size={14} style={{ color: "rgba(163,230,53,0.55)" }} />
+                <p className="text-2xl font-black text-white">{summary.zones_visited}</p>
+                <p className="text-[9px] font-bold uppercase tracking-[0.22em] text-white/28">
+                  {summary.zones_visited === 1 ? "Zone Visited" : "Zones Visited"}
+                </p>
+              </div>
+
+              {/* Total Spent */}
+              <div
+                className="flex flex-col gap-2 p-4"
+                style={{ background: "rgba(212,168,83,0.05)", border: "1px solid rgba(212,168,83,0.14)", borderRadius: "14px" }}
+              >
+                <IndianRupee size={14} style={{ color: "rgba(212,168,83,0.65)" }} />
+                <p className="text-2xl font-black" style={{ color: "#f5dfa0" }}>
+                  {summary.total_spent.toLocaleString("en-IN")}
+                </p>
+                <p className="text-[9px] font-bold uppercase tracking-[0.22em] text-white/28">Total Spent</p>
+              </div>
+
+              {/* Last Visit */}
+              <div
+                className="flex flex-col gap-2 p-4"
+                style={{ background: "rgba(96,165,250,0.05)", border: "1px solid rgba(96,165,250,0.14)", borderRadius: "14px" }}
+              >
+                <TrendingUp size={14} style={{ color: "rgba(96,165,250,0.65)" }} />
+                <p className="text-sm font-black leading-tight" style={{ color: "#93c5fd" }}>
+                  {summary.last_booking_date
+                    ? new Date(summary.last_booking_date).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })
+                    : "—"}
+                </p>
+                <p className="text-[9px] font-bold uppercase tracking-[0.22em] text-white/28">Last Visit</p>
+              </div>
+            </div>
+          </div>
+        )}
 
       </div>
     </DashboardLayout>
