@@ -6,6 +6,7 @@ import LoadingSpinner from "../components/ui/LoadingSpinner";
 import ErrorAlert from "../components/ui/ErrorAlert";
 import EmptyState from "../components/ui/EmptyState";
 import EnclosureCard from "../components/zones/EnclosureCard";
+import BookTicketModal from "../components/tickets/BookTicketModal";
 import { CLIMATE_META } from "../constants/climateData";
 import api from "../api/axiosInstance";
 
@@ -42,9 +43,10 @@ const ZoneStatCard = ({ icon: Icon, label, value, color }) => (
 ════════════════════════════════════════ */
 const ZoneDetail = () => {
   const { id } = useParams();
-  const [zone, setZone]       = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError]     = useState(null);
+  const [zone, setZone]         = useState(null);
+  const [loading, setLoading]   = useState(true);
+  const [error, setError]       = useState(null);
+  const [showModal, setShowModal] = useState(false);
 
   useEffect(() => {
     const fetchZone = async () => {
@@ -154,14 +156,14 @@ const ZoneDetail = () => {
                 </p>
                 <p className="text-[10px] text-white/28">per visit · + GST</p>
               </div>
-              <Link
-                to="/dashboard/zones"
+              <button
+                onClick={() => setShowModal(true)}
                 className="flex items-center gap-2 border border-lime-400/60 px-5 py-2.5 text-[10px] font-bold uppercase tracking-[0.25em] text-white transition-all hover:bg-lime-400 hover:text-black"
                 style={{ borderRadius: "8px" }}
               >
                 <Ticket size={12} />
                 Book a Visit
-              </Link>
+              </button>
             </div>
           </div>
         </div>
@@ -198,6 +200,15 @@ const ZoneDetail = () => {
         </div>
 
       </div>
+
+      {/* Book ticket modal — pre-filled with this zone */}
+      {showModal && zone && (
+        <BookTicketModal
+          preselectedZoneId={zone.zone_id}
+          onClose={() => setShowModal(false)}
+          onBooked={() => setShowModal(false)}
+        />
+      )}
     </DashboardLayout>
   );
 };

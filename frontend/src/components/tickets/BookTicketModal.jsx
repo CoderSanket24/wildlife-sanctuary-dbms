@@ -7,10 +7,11 @@ import api from "../../api/axiosInstance";
  * Modal for booking a new safari ticket.
  * Fetches available zones, lets the user pick one, shows price breakdown, and confirms.
  *
- * @param {Function} onClose   - Called when modal should close.
- * @param {Function} onBooked  - Called with the new ticket after a successful booking.
+ * @param {Function} onClose            - Called when modal should close.
+ * @param {Function} onBooked           - Called with the new ticket after a successful booking.
+ * @param {number}   [preselectedZoneId] - Optional zone_id to auto-select (e.g. from ZoneDetail page).
  */
-const BookTicketModal = ({ onClose, onBooked }) => {
+const BookTicketModal = ({ onClose, onBooked, preselectedZoneId }) => {
   const [zones, setZones]       = useState([]);
   const [selectedZone, setSelectedZone] = useState(null);
   const [loading, setLoading]   = useState(true);
@@ -18,10 +19,17 @@ const BookTicketModal = ({ onClose, onBooked }) => {
   const [success, setSuccess]   = useState(null);  // booked ticket
   const [error, setError]       = useState(null);
 
-  /* Fetch zones on mount */
+  /* Fetch zones on mount; auto-select if preselectedZoneId is given */
   useEffect(() => {
     api.get("/zones")
-      .then(res => setZones(res.data.zones ?? []))
+      .then(res => {
+        const list = res.data.zones ?? [];
+        setZones(list);
+        if (preselectedZoneId) {
+          const match = list.find(z => z.zone_id === preselectedZoneId);
+          if (match) setSelectedZone(match);
+        }
+      })
       .catch(() => setError("Could not load zones. Please try again."))
       .finally(() => setLoading(false));
   }, []);
