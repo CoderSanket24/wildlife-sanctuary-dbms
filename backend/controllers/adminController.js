@@ -255,3 +255,145 @@ export const getAdminStats = async (req, res) => {
     return res.status(500).json({ success: false, error: 'Failed to fetch admin stats.' });
   }
 };
+
+/* ──────────────────────────────────────────
+   ENCLOSURES
+────────────────────────────────────────── */
+
+/** GET /api/admin/enclosures — all enclosures with zone + animal count */
+export const getAllEnclosures = async (req, res) => {
+  try {
+    const enclosures = await prisma.enclosure.findMany({
+      include: {
+        zone: { select: { zone_id: true, name: true, climate: true } },
+        _count: { select: { animals: true } },
+      },
+      orderBy: { enclosure_id: 'asc' },
+    });
+    return res.status(200).json({ success: true, enclosures });
+  } catch (error) {
+    console.error('🔥 Admin – Enclosures Fetch Error:', error);
+    return res.status(500).json({ success: false, error: 'Failed to fetch enclosures.' });
+  }
+};
+
+/** DELETE /api/admin/enclosures/:id */
+export const deleteEnclosure = async (req, res) => {
+  try {
+    const enclosure_id = parseInt(req.params.id, 10);
+    await prisma.enclosure.delete({ where: { enclosure_id } });
+    return res.status(200).json({ success: true, message: 'Enclosure deleted.' });
+  } catch (error) {
+    console.error('🔥 Admin – Enclosure Delete Error:', error);
+    if (error.code === 'P2025') return res.status(404).json({ success: false, error: 'Enclosure not found.' });
+    return res.status(500).json({ success: false, error: 'Failed to delete enclosure.' });
+  }
+};
+
+/* ──────────────────────────────────────────
+   HEALTH LOGS
+────────────────────────────────────────── */
+
+/** GET /api/admin/health-logs — all health logs across all animals */
+export const getAllHealthLogs = async (req, res) => {
+  try {
+    const logs = await prisma.healthLog.findMany({
+      orderBy: { logged_at: 'desc' },
+      include: {
+        animal:       { select: { animal_id: true, species: true, nickname: true, health_status: true } },
+        veterinarian: { select: { staff_id: true, first_name: true, last_name: true, role: true } },
+      },
+    });
+    return res.status(200).json({ success: true, logs });
+  } catch (error) {
+    console.error('🔥 Admin – Health Logs Fetch Error:', error);
+    return res.status(500).json({ success: false, error: 'Failed to fetch health logs.' });
+  }
+};
+
+/** DELETE /api/admin/health-logs/:id */
+export const deleteHealthLog = async (req, res) => {
+  try {
+    const log_id = BigInt(req.params.id);
+    await prisma.healthLog.delete({ where: { log_id } });
+    return res.status(200).json({ success: true, message: 'Health log deleted.' });
+  } catch (error) {
+    console.error('🔥 Admin – Health Log Delete Error:', error);
+    if (error.code === 'P2025') return res.status(404).json({ success: false, error: 'Log not found.' });
+    return res.status(500).json({ success: false, error: 'Failed to delete health log.' });
+  }
+};
+
+/* ──────────────────────────────────────────
+   SURVEYS
+────────────────────────────────────────── */
+
+/** GET /api/admin/surveys — all field surveys with animal info */
+export const getAllSurveys = async (req, res) => {
+  try {
+    const surveys = await prisma.survey.findMany({
+      orderBy: { survey_date: 'desc' },
+      include: {
+        animal: { select: { animal_id: true, species: true, nickname: true } },
+      },
+    });
+    // Normalise BigInt survey_id + Decimal coords
+    const result = surveys.map(s => ({
+      ...s,
+      survey_id:      String(s.survey_id),
+      latitude:       parseFloat(s.latitude),
+      longitude:      parseFloat(s.longitude),
+    }));
+    return res.status(200).json({ success: true, surveys: result });
+  } catch (error) {
+    console.error('🔥 Admin – Surveys Fetch Error:', error);
+    return res.status(500).json({ success: false, error: 'Failed to fetch surveys.' });
+  }
+};
+
+/** DELETE /api/admin/surveys/:id */
+export const deleteSurvey = async (req, res) => {
+  try {
+    const survey_id = BigInt(req.params.id);
+    await prisma.survey.delete({ where: { survey_id } });
+    return res.status(200).json({ success: true, message: 'Survey deleted.' });
+  } catch (error) {
+    console.error('🔥 Admin – Survey Delete Error:', error);
+    if (error.code === 'P2025') return res.status(404).json({ success: false, error: 'Survey not found.' });
+    return res.status(500).json({ success: false, error: 'Failed to delete survey.' });
+  }
+};
+
+/* ──────────────────────────────────────────
+   FEEDBACK
+────────────────────────────────────────── */
+
+/** GET /api/admin/feedback — all visitor feedback */
+export const getAllFeedback = async (req, res) => {
+  try {
+    const feedback = await prisma.feedback.findMany({
+      orderBy: { submitted_at: 'desc' },
+      include: {
+        visitor: { select: { visitor_id: true, first_name: true, last_name: true, email: true } },
+      },
+    });
+    return res.status(200).json({ success: true, feedback });
+  } catch (error) {
+    console.error('🔥 Admin – Feedback Fetch Error:', error);
+    return res.status(500).json({ success: false, error: 'Failed to fetch feedback.' });
+  }
+};
+
+/** DELETE /api/admin/feedback/:id */
+export const deleteFeedback = async (req, res) => {
+  try {
+    const feedback_id = parseInt(req.params.id, 10);
+    await prisma.feedback.delete({ where: { feedback_id } });
+    return res.status(200).json({ success: true, message: 'Feedback deleted.' });
+  } catch (error) {
+    console.error('🔥 Admin – Feedback Delete Error:', error);
+    if (error.code === 'P2025') return res.status(404).json({ success: false, error: 'Feedback not found.' });
+    return res.status(500).json({ success: false, error: 'Failed to delete feedback.' });
+  }
+};
+

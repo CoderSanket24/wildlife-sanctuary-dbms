@@ -10,6 +10,14 @@ import {
   deleteAnimal,
   deleteZone,
   getAllTickets,
+  getAllEnclosures,
+  deleteEnclosure,
+  getAllHealthLogs,
+  deleteHealthLog,
+  getAllSurveys,
+  deleteSurvey,
+  getAllFeedback,
+  deleteFeedback,
 } from '../controllers/adminController.js';
 
 const router = Router();
@@ -36,6 +44,23 @@ router.delete('/animals/:id',       deleteAnimal);
 router.delete('/zones/:id',         deleteZone);
 
 // Tickets (all visitors)
-router.get('/tickets',  getAllTickets);
+router.get('/tickets',              getAllTickets);
+
+// Enclosures
+router.get('/enclosures',           getAllEnclosures);
+router.delete('/enclosures/:id',    deleteEnclosure);
+
+// Health Logs
+router.get('/health-logs',          getAllHealthLogs);
+router.delete('/health-logs/:id',   deleteHealthLog);
+
+// Surveys
+router.get('/surveys',              getAllSurveys);
+router.delete('/surveys/:id',       deleteSurvey);
+
+// Feedback
+router.get('/feedback',             getAllFeedback);
+router.delete('/feedback/:id',      deleteFeedback);
 
 export default router;
+
