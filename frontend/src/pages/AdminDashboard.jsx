@@ -834,7 +834,7 @@ const HealthLogsTab = ({ toast }) => {
         ) : logs.length === 0 ? (
           <p className="py-12 text-center text-sm text-white/20">No health logs found.</p>
         ) : (
-          <div className="divide-y max-h-[520px] overflow-y-auto" style={{ borderColor: "rgba(255,255,255,0.04)" }}>
+          <div className="divide-y max-h-130 overflow-y-auto" style={{ borderColor: "rgba(255,255,255,0.04)" }}>
             {logs.map(log => {
               const col = STATUS_COLOR[log.animal?.health_status] ?? "#a3e635";
               return (
@@ -949,7 +949,7 @@ const SurveysTab = ({ toast }) => {
         ) : surveys.length === 0 ? (
           <p className="py-12 text-center text-sm text-white/20">No surveys logged.</p>
         ) : (
-          <div className="divide-y max-h-[520px] overflow-y-auto" style={{ borderColor: "rgba(255,255,255,0.04)" }}>
+          <div className="divide-y max-h-130 overflow-y-auto" style={{ borderColor: "rgba(255,255,255,0.04)" }}>
             {surveys.map(s => (
               <div key={s.survey_id} className="grid grid-cols-[1.5fr_80px_110px_110px_100px_44px] items-center gap-3 px-5 py-3">
                 <div>
