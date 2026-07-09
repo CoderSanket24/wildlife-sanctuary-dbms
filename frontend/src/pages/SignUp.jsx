@@ -126,20 +126,28 @@ const LeftPanel = () => {
 const SignUp = () => {
   const navigate = useNavigate();
   const { user, loading } = useAuth();
+
+  // ── All hooks unconditionally before any early return ──
   const [showPassword, setShowPassword] = useState(false);
   const [serverError, setServerError] = useState("");
   const [success, setSuccess] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const { register, handleSubmit, formState: { errors } } = useForm();
 
-  // Already authenticated — send straight to dashboard
-  if (loading) return null;
+  // Guard: still verifying session cookie
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-[#050705]">
+        <svg className="h-8 w-8 animate-spin" viewBox="0 0 24 24" fill="none">
+          <circle className="opacity-20" cx="12" cy="12" r="10" stroke="#a3e635" strokeWidth="3" />
+          <path className="opacity-80" fill="#a3e635" d="M4 12a8 8 0 018-8v8H4z" />
+        </svg>
+      </div>
+    );
+  }
+
+  // Guard: already authenticated
   if (user) return <Navigate to="/dashboard" replace />;
-
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-  } = useForm();
 
   const onSubmit = async (data) => {
     setServerError("");

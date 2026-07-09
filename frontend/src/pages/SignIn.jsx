@@ -11,21 +11,28 @@ const SignIn = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, loading, loginUser } = useAuth();
-  // Where to send the user after login — defaults to /dashboard
   const redirectTo = location.state?.from || "/dashboard";
+
+  // ── All hooks must be called unconditionally before any early return ──
   const [showPassword, setShowPassword] = useState(false);
   const [serverError, setServerError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const { register, handleSubmit, formState: { errors } } = useForm();
 
-  // Already authenticated — send straight to dashboard
-  if (loading) return null;
-  if (user) return <Navigate to="/dashboard" replace />;
+  // Guard: still verifying session cookie
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-[#050705]">
+        <svg className="h-8 w-8 animate-spin" viewBox="0 0 24 24" fill="none">
+          <circle className="opacity-20" cx="12" cy="12" r="10" stroke="#a3e635" strokeWidth="3" />
+          <path className="opacity-80" fill="#a3e635" d="M4 12a8 8 0 018-8v8H4z" />
+        </svg>
+      </div>
+    );
+  }
 
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-  } = useForm();
+  // Guard: already authenticated
+  if (user) return <Navigate to={redirectTo} replace />;
 
   const onSubmit = async (data) => {
     setServerError("");
