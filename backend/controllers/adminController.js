@@ -17,6 +17,8 @@ export const getAllVisitors = async (req, res) => {
         role:       true,
         created_at: true,
         _count: { select: { tickets: true } },
+        // Include staff record so frontend can display operational role
+        staff: { select: { role: true } },
       },
       orderBy: { visitor_id: 'asc' },
     });
@@ -33,16 +35,42 @@ export const updateVisitorRole = async (req, res) => {
     const visitor_id = parseInt(req.params.id, 10);
     const { role }   = req.body;
 
-    const VALID_ROLES = ['VISITOR', 'RANGER', 'ADMIN'];
+    const VALID_ROLES = ['VISITOR', 'STAFF', 'ADMIN'];
     if (!VALID_ROLES.includes(role)) {
       return res.status(400).json({ success: false, error: `Invalid role. Must be one of: ${VALID_ROLES.join(', ')}` });
     }
 
+    // Update visitor role
     const updated = await prisma.visitor.update({
       where: { visitor_id },
       data:  { role },
       select: { visitor_id: true, first_name: true, last_name: true, email: true, role: true },
     });
+
+    // If promoted to STAFF and no staff record exists yet → auto-create with RANGER as default
+    if (role === 'STAFF') {
+      const existing = await prisma.staff.findUnique({ where: { staff_id: visitor_id } });
+      if (!existing) {
+        const visitor = await prisma.visitor.findUnique({
+          where:  { visitor_id },
+          select: { first_name: true, last_name: true, email: true },
+        });
+        await prisma.staff.create({
+          data: {
+            staff_id:   visitor_id,
+            first_name: visitor.first_name,
+            last_name:  visitor.last_name,
+            role:       'RANGER',   // default operational role
+            email:      visitor.email,
+          },
+        });
+      }
+    }
+
+    // If demoted away from STAFF, remove the staff record
+    if (role === 'VISITOR') {
+      await prisma.staff.deleteMany({ where: { staff_id: visitor_id } });
+    }
 
     return res.status(200).json({ success: true, message: 'Visitor role updated.', visitor: updated });
   } catch (error) {
@@ -106,13 +134,16 @@ export const createStaffMember = async (req, res) => {
       },
     });
 
-    // Also promote their Visitor role to RANGER if they're still VISITOR
-    if (visitor.role === 'VISITOR') {
-      await prisma.visitor.update({
-        where: { visitor_id: parseInt(visitor_id, 10) },
-        data:  { role: 'RANGER' },
-      });
-    }
+    // Map staff role → Visitor Role enum:
+    //   ADMINISTRATOR → ADMIN
+    //   RANGER | VETERINARIAN | FIELD_ANALYST → STAFF
+    const visitorRole = role === 'ADMINISTRATOR' ? 'ADMIN' : 'STAFF';
+
+    // Always sync the visitor role (covers upgrades: e.g. VISITOR→STAFF→ADMIN)
+    await prisma.visitor.update({
+      where: { visitor_id: parseInt(visitor_id, 10) },
+      data:  { role: visitorRole },
+    });
 
     return res.status(201).json({ success: true, message: 'Staff member registered.', staff });
   } catch (error) {

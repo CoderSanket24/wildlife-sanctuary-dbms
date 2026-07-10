@@ -44,7 +44,7 @@ const Badge = ({ label, color }) => (
   </span>
 );
 
-const ROLE_COLOR   = { VISITOR: "#60a5fa", RANGER: "#34d399", ADMIN: "#a3e635" };
+const ROLE_COLOR   = { VISITOR: "#60a5fa", STAFF: "#34d399", ADMIN: "#a3e635" };
 const STATUS_COLOR = { HEALTHY: "#4ade80", UNDER_CARE: "#fbbf24", CRITICAL: "#f87171", QUARANTINED: "#818cf8" };
 const CLIMATE_COLOR = { TROPICAL: "#34d399", TEMPERATE: "#60a5fa", ARID: "#fbbf24", WETLAND: "#818cf8", ALPINE: "#e2e8f0" };
 
@@ -174,8 +174,8 @@ const VisitorsTab = ({ toast }) => {
 
       <div style={{ background: "linear-gradient(145deg,rgba(13,26,15,0.85) 0%,rgba(9,18,10,0.92) 100%)", borderRadius: "18px", border: "1px solid rgba(163,230,53,0.09)", overflow: "hidden" }}>
         {/* Table header */}
-        <div className="grid grid-cols-[1fr_1.5fr_80px_80px_130px] gap-4 px-5 py-3 text-[9px] font-black uppercase tracking-[0.25em] text-white/25" style={{ borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
-          <span>Name</span><span>Email</span><span>Age</span><span>Bookings</span><span>Role</span>
+        <div className="grid grid-cols-[1fr_1.5fr_60px_60px_120px_130px] gap-4 px-5 py-3 text-[9px] font-black uppercase tracking-[0.25em] text-white/25" style={{ borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
+          <span>Name</span><span>Email</span><span>Age</span><span>Bookings</span><span>Staff Role</span><span>Access</span>
         </div>
         {loading ? (
           <div className="flex flex-col gap-3 p-5">
@@ -186,11 +186,23 @@ const VisitorsTab = ({ toast }) => {
         ) : (
           <div className="divide-y" style={{ borderColor: "rgba(255,255,255,0.04)" }}>
             {visitors.map(v => (
-              <div key={v.visitor_id} className="grid grid-cols-[1fr_1.5fr_80px_80px_130px] items-center gap-4 px-5 py-3">
+              <div key={v.visitor_id} className="grid grid-cols-[1fr_1.5fr_60px_60px_120px_130px] items-center gap-4 px-5 py-3">
                 <span className="truncate text-[13px] font-semibold text-white/75">{v.first_name} {v.last_name}</span>
                 <span className="truncate text-[11px] text-white/38">{v.email}</span>
                 <span className="text-[12px] text-white/45">{v.age}</span>
                 <span className="text-[12px] text-white/45">{v._count?.tickets ?? 0}</span>
+                {/* Operational staff role — only visible if visitor is staff */}
+                {v.staff ? (
+                  <span
+                    className="truncate text-[10px] font-black uppercase tracking-[0.15em] px-2 py-1 rounded"
+                    style={{ background: "rgba(52,211,153,0.10)", color: "#34d399", border: "1px solid rgba(52,211,153,0.20)" }}
+                  >
+                    {v.staff.role.replace("_", " ")}
+                  </span>
+                ) : (
+                  <span className="text-[10px] text-white/15">—</span>
+                )}
+                {/* System access role dropdown */}
                 <select
                   value={v.role}
                   disabled={updating === v.visitor_id}
@@ -199,7 +211,7 @@ const VisitorsTab = ({ toast }) => {
                   style={{ ...inputStyle, color: ROLE_COLOR[v.role], fontSize: "10px" }}
                 >
                   <option value="VISITOR">Visitor</option>
-                  <option value="RANGER">Ranger</option>
+                  <option value="STAFF">Staff</option>
                   <option value="ADMIN">Admin</option>
                 </select>
               </div>
@@ -888,7 +900,7 @@ const HealthLogsTab = ({ toast }) => {
             </Sel>
             <Sel label="Veterinarian *" value={form.veterinarian_id} onChange={e => setForm(f => ({ ...f, veterinarian_id: e.target.value }))} required>
               <option value="" disabled>Select vet from staff…</option>
-              {staff.filter(s => s.role === "VETERINARIAN" || s.role === "ADMINISTRATOR").map(s => <option key={s.staff_id} value={s.staff_id} style={{ background: "#0d1a0f" }}>{s.first_name} {s.last_name} — {s.role}</option>)}
+              {staff.map(s => <option key={s.staff_id} value={s.staff_id} style={{ background: "#0d1a0f" }}>{s.first_name} {s.last_name} — {s.role.replace("_", " ")}</option>)}
             </Sel>
             <Inp label="Diagnosis *" value={form.diagnosis} onChange={e => setForm(f => ({ ...f, diagnosis: e.target.value }))} required placeholder="Describe the condition…" />
             <Inp label="Treatment *" value={form.treatment} onChange={e => setForm(f => ({ ...f, treatment: e.target.value }))} required placeholder="Prescribed treatment…" />

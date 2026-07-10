@@ -153,6 +153,6 @@ enum StaffRole {
 
 enum Role {
   VISITOR
-  RANGER
+  STAFF
   ADMIN
 }

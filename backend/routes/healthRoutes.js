@@ -6,9 +6,9 @@ import { validate, healthLogSchema } from '../middlewares/validate.js';
 const router = Router();
 
 // Only Rangers or Admins can submit medical intervention records
-router.post('/logs', protect, restrictTo('RANGER', 'ADMIN'), validate(healthLogSchema), createHealthLog);
+router.post('/logs', protect, restrictTo('STAFF', 'ADMIN'), validate(healthLogSchema), createHealthLog);
 
 // Authorized staff can read historical health timelines
-router.get('/timeline/:animalId', protect, restrictTo('RANGER', 'ADMIN'), getAnimalMedicalHistory);
+router.get('/timeline/:animalId', protect, restrictTo('STAFF', 'ADMIN'), getAnimalMedicalHistory);
 
 export default router;

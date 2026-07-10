@@ -6,7 +6,7 @@ import { validate, enclosureSchema, animalSchema } from '../middlewares/validate
 const router = Router();
 
 router.post('/enclosures', protect, restrictTo('ADMIN'), validate(enclosureSchema), createEnclosure);
-router.post('/animals', protect, restrictTo('RANGER', 'ADMIN'), validate(animalSchema), registerAnimal);
+router.post('/animals', protect, restrictTo('STAFF', 'ADMIN'), validate(animalSchema), registerAnimal);
 
 router.get('/',    protect, getAllAnimals);
 router.get('/:id', protect, getAnimalById);  

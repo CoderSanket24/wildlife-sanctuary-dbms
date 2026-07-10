@@ -5,6 +5,6 @@ import { logFaunaSurvey } from '../controllers/surveyController.js'
 
 const router = Router()
 
-router.post('/surveys', protect, restrictTo('RANGER', 'ADMIN'), validate(surveyLogSchema), logFaunaSurvey)
+router.post('/surveys', protect, restrictTo('STAFF', 'ADMIN'), validate(surveyLogSchema), logFaunaSurvey)
 
 export default router
