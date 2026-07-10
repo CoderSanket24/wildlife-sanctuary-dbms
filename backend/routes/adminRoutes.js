@@ -18,6 +18,7 @@ import {
   deleteSurvey,
   getAllFeedback,
   deleteFeedback,
+  deleteStaff,
 } from '../controllers/adminController.js';
 
 const router = Router();
@@ -35,6 +36,7 @@ router.put('/visitors/:id/role',    updateVisitorRole);
 // Staff
 router.get('/staff',   getAllStaff);
 router.post('/staff',  createStaffMember);
+router.delete('/staff/:id', deleteStaff);
 
 // Animals
 router.put('/animals/:id/status',   updateAnimalStatus);

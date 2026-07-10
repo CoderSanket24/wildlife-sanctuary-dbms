@@ -27,11 +27,11 @@ export const enclosureSchema = z.object({
 
 export const animalSchema = z.object({
   body: z.object({
-    enclosure_id: z.number().int().positive({ message: "Valid target Enclosure ID link is required." }),
+    enclosure_id: z.number().int().positive({ message: "Valid target Enclosure ID link is required." }).nullable().optional(),
     species: z.string().min(1, { message: "Species classification string cannot be blank." }).trim(),
-    scientific_name: z.string().min(1, { message: "Scientific taxonomic name is required." }).trim(),
-    nickname: z.string().optional(),
-    birth_date: z.string().datetime({ message: "Birth date must be a valid ISO datetime string." }).optional(),
+    scientific_name: z.string().min(1).trim().optional().or(z.literal('')).nullable().optional(),
+    nickname: z.string().optional().nullable(),
+    birth_date: z.string().optional().nullable(),
     health_status: z.enum(['HEALTHY', 'UNDER_CARE', 'CRITICAL', 'QUARANTINED']).default('HEALTHY'),
   }),
 });
@@ -64,9 +64,13 @@ export const validate = (schema) => (req, res, next) => {
     });
     return next(); 
   } catch (error) {
-    return res.status(400).json({ 
-      success: false, 
-      errors: error.errors.map(err => ({ field: err.path[1], message: err.message })) 
-    });
+    // ZodError has an .errors array; guard against plain errors
+    if (Array.isArray(error.errors)) {
+      return res.status(400).json({ 
+        success: false, 
+        errors: error.errors.map(err => ({ field: err.path[1], message: err.message })) 
+      });
+    }
+    return res.status(400).json({ success: false, error: error.message ?? 'Validation failed.' });
   }
-};
+};

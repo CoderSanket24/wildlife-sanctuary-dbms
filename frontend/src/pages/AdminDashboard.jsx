@@ -218,6 +218,7 @@ const StaffTab = ({ toast }) => {
   const [staff, setStaff]       = useState([]);
   const [visitors, setVisitors] = useState([]);
   const [loading, setLoading]   = useState(true);
+  const [deleting, setDeleting] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [form, setForm] = useState({ visitor_id: "", role: "", first_name: "", last_name: "", email: "" });
   const [submitting, setSubmitting] = useState(false);
@@ -259,6 +260,20 @@ const StaffTab = ({ toast }) => {
 
   const staffIds = new Set(staff.map(s => s.staff_id));
 
+  const remove = async (staff_id) => {
+    if (!window.confirm("Remove this staff member? They will be demoted back to Visitor.")) return;
+    setDeleting(staff_id);
+    try {
+      await api.delete(`/admin/staff/${staff_id}`);
+      setStaff(v => v.filter(x => x.staff_id !== staff_id));
+      toast("Staff member removed.");
+    } catch (err) {
+      toast(err.response?.data?.error ?? "Failed to remove staff.", "error");
+    } finally {
+      setDeleting(null);
+    }
+  };
+
   return (
     <div>
       <div className="mb-6 flex items-end justify-between">
@@ -272,8 +287,8 @@ const StaffTab = ({ toast }) => {
       </div>
 
       <div style={{ background: "linear-gradient(145deg,rgba(13,26,15,0.85) 0%,rgba(9,18,10,0.92) 100%)", borderRadius: "18px", border: "1px solid rgba(163,230,53,0.09)", overflow: "hidden" }}>
-        <div className="grid grid-cols-[1fr_1.5fr_1fr_80px] gap-4 px-5 py-3 text-[9px] font-black uppercase tracking-[0.25em] text-white/25" style={{ borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
-          <span>Name</span><span>Email</span><span>Staff Role</span><span>Cases</span>
+        <div className="grid grid-cols-[1fr_1.5fr_1fr_80px_44px] gap-4 px-5 py-3 text-[9px] font-black uppercase tracking-[0.25em] text-white/25" style={{ borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
+          <span>Name</span><span>Email</span><span>Staff Role</span><span>Cases</span><span></span>
         </div>
         {loading ? (
           <div className="flex flex-col gap-3 p-5">{[1,2,3].map(i => <div key={i} className="h-12 animate-pulse rounded-lg" style={{ background: "rgba(255,255,255,0.03)" }} />)}</div>
@@ -282,11 +297,20 @@ const StaffTab = ({ toast }) => {
         ) : (
           <div className="divide-y" style={{ borderColor: "rgba(255,255,255,0.04)" }}>
             {staff.map(s => (
-              <div key={s.staff_id} className="grid grid-cols-[1fr_1.5fr_1fr_80px] items-center gap-4 px-5 py-3">
+              <div key={s.staff_id} className="grid grid-cols-[1fr_1.5fr_1fr_80px_44px] items-center gap-4 px-5 py-3">
                 <span className="truncate text-[13px] font-semibold text-white/75">{s.first_name} {s.last_name}</span>
                 <span className="truncate text-[11px] text-white/38">{s.email}</span>
                 <Badge label={s.role.replace("_", " ")} color="#34d399" />
                 <span className="text-[12px] text-white/45">{s._count?.medical_cases ?? 0}</span>
+                <button
+                  onClick={() => remove(s.staff_id)}
+                  disabled={deleting === s.staff_id}
+                  className="flex h-7 w-7 items-center justify-center rounded transition hover:bg-red-500/12"
+                  style={{ color: "rgba(248,113,113,0.45)" }}
+                  title="Remove staff member"
+                >
+                  <Trash2 size={13} />
+                </button>
               </div>
             ))}
           </div>

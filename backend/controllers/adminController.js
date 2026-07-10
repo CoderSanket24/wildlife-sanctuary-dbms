@@ -397,3 +397,34 @@ export const deleteFeedback = async (req, res) => {
   }
 };
 
+/* ──────────────────────────────────────────
+   DELETE STAFF
+────────────────────────────────────────── */
+
+/**
+ * DELETE /api/admin/staff/:id
+ * Removes a staff record and demotes the linked visitor back to VISITOR role.
+ * staff_id === visitor_id (shared PK pattern).
+ */
+export const deleteStaff = async (req, res) => {
+  try {
+    const staff_id = parseInt(req.params.id, 10);
+
+    // Run both in a transaction so they succeed or fail together
+    await prisma.$transaction([
+      prisma.staff.delete({ where: { staff_id } }),
+      prisma.visitor.update({
+        where: { visitor_id: staff_id },
+        data:  { role: 'VISITOR' },
+      }),
+    ]);
+
+    return res.status(200).json({ success: true, message: 'Staff member removed and demoted to Visitor.' });
+  } catch (error) {
+    console.error('🔥 Admin – Staff Delete Error:', error);
+    if (error.code === 'P2025') return res.status(404).json({ success: false, error: 'Staff member not found.' });
+    return res.status(500).json({ success: false, error: 'Failed to remove staff member.' });
+  }
+};
+
+
