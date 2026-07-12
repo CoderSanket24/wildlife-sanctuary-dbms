@@ -41,22 +41,6 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-
-CREATE OR REPLACE FUNCTION fn_sync_visitor_to_staff()
-RETURNS TRIGGER AS $$
-BEGIN
-    -- If a user registers as a RANGER or ADMIN, provision their staff profile automatically
-    IF NEW.role IN ('RANGER', 'ADMIN') THEN
-        INSERT INTO staff (staff_id, first_name, last_name, role, email)
-        VALUES (NEW.visitor_id, NEW.first_name, NEW.last_name, NEW.role::VARCHAR, NEW.email)
-        ON CONFLICT (staff_id) DO UPDATE 
-        SET role = EXCLUDED.role, first_name = EXCLUDED.first_name, last_name = EXCLUDED.last_name;
-    END IF;
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
-
 CREATE OR REPLACE TRIGGER trg_pre_compute_ticket_billing
 BEFORE INSERT ON tickets
 FOR EACH ROW EXECUTE FUNCTION fn_calculate_ticket_costs();
@@ -65,9 +49,113 @@ CREATE OR REPLACE TRIGGER trg_pre_validate_enclosure_capacity
 BEFORE INSERT ON animals
 FOR EACH ROW EXECUTE FUNCTION fn_enforce_enclosure_capacity();
 
-CREATE OR REPLACE TRIGGER trg_after_visitor_signup
-AFTER INSERT OR UPDATE OF role ON visitors
-FOR EACH ROW EXECUTE FUNCTION fn_sync_visitor_to_staff();
+
+-- ============================================================
+--  ROLE SYNC TRIGGERS
+--  Keeps visitors.role ↔ staff table in sync automatically.
+--  All functions guard against recursive firing via pg_trigger_depth().
+--
+--  Replaces the old trg_after_visitor_signup / fn_sync_visitor_to_staff
+--  which referenced the removed 'RANGER' visitor role.
+-- ============================================================
+
+-- Clean up legacy trigger + function (safe to run on fresh DBs too)
+DROP TRIGGER IF EXISTS trg_after_visitor_signup ON visitors;
+DROP FUNCTION IF EXISTS fn_sync_visitor_to_staff();
+
+
+-- TRIGGER 1: visitors.role → staff table
+--   STAFF   → auto-create staff row (role = 'RANGER') if absent
+--   VISITOR → delete staff row if it exists
+CREATE OR REPLACE FUNCTION fn_sync_staff_on_role_change()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF NEW.role = OLD.role OR pg_trigger_depth() > 1 THEN
+    RETURN NEW;
+  END IF;
+
+  IF NEW.role = 'STAFF' THEN
+    INSERT INTO staff (staff_id, first_name, last_name, role, email)
+    VALUES (NEW.visitor_id, NEW.first_name, NEW.last_name, 'RANGER', NEW.email)
+    ON CONFLICT (staff_id) DO NOTHING;
+  END IF;
+
+  IF NEW.role = 'VISITOR' THEN
+    DELETE FROM staff WHERE staff_id = NEW.visitor_id;
+  END IF;
+
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS trg_visitor_role_change ON visitors;
+CREATE TRIGGER trg_visitor_role_change
+  AFTER UPDATE OF role ON visitors
+  FOR EACH ROW
+  EXECUTE FUNCTION fn_sync_staff_on_role_change();
+
+
+-- TRIGGER 2: staff INSERT → sync visitor.role
+--   ADMINISTRATOR → 'ADMIN' | everything else → 'STAFF'
+CREATE OR REPLACE FUNCTION fn_sync_visitor_on_staff_insert()
+RETURNS TRIGGER AS $$
+DECLARE
+  target_role "Role";
+BEGIN
+  IF pg_trigger_depth() > 1 THEN RETURN NEW; END IF;
+  target_role := CASE WHEN NEW.role = 'ADMINISTRATOR' THEN 'ADMIN'::"Role" ELSE 'STAFF'::"Role" END;
+  UPDATE visitors SET role = target_role
+  WHERE  visitor_id = NEW.staff_id AND role != target_role;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS trg_staff_insert ON staff;
+CREATE TRIGGER trg_staff_insert
+  AFTER INSERT ON staff
+  FOR EACH ROW
+  EXECUTE FUNCTION fn_sync_visitor_on_staff_insert();
+
+
+-- TRIGGER 3: staff UPDATE (role change) → re-sync visitor.role
+CREATE OR REPLACE FUNCTION fn_sync_visitor_on_staff_update()
+RETURNS TRIGGER AS $$
+DECLARE
+  target_role "Role";
+BEGIN
+  IF NEW.role = OLD.role OR pg_trigger_depth() > 1 THEN RETURN NEW; END IF;
+  target_role := CASE WHEN NEW.role = 'ADMINISTRATOR' THEN 'ADMIN'::"Role" ELSE 'STAFF'::"Role" END;
+  UPDATE visitors SET role = target_role
+  WHERE  visitor_id = NEW.staff_id AND role != target_role;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS trg_staff_update ON staff;
+CREATE TRIGGER trg_staff_update
+  AFTER UPDATE OF role ON staff
+  FOR EACH ROW
+  EXECUTE FUNCTION fn_sync_visitor_on_staff_update();
+
+
+-- TRIGGER 4: staff DELETE → revert visitor.role to 'VISITOR'
+CREATE OR REPLACE FUNCTION fn_sync_visitor_on_staff_delete()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF pg_trigger_depth() > 1 THEN RETURN OLD; END IF;
+  UPDATE visitors SET role = 'VISITOR'
+  WHERE  visitor_id = OLD.staff_id AND role != 'VISITOR';
+  RETURN OLD;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS trg_staff_delete ON staff;
+CREATE TRIGGER trg_staff_delete
+  AFTER DELETE ON staff
+  FOR EACH ROW
+  EXECUTE FUNCTION fn_sync_visitor_on_staff_delete();
+
+
 
 
 CREATE OR REPLACE FUNCTION fn_book_safari_ticket(

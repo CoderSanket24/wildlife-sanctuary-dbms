@@ -29,7 +29,9 @@ export const getAllVisitors = async (req, res) => {
   }
 };
 
-/** PUT /api/admin/visitors/:id/role — change a visitor's role */
+/** PUT /api/admin/visitors/:id/role — change a visitor's role.
+ *  Triggers handle the rest: staff auto-create/delete, role cascade.
+ */
 export const updateVisitorRole = async (req, res) => {
   try {
     const visitor_id = parseInt(req.params.id, 10);
@@ -40,44 +42,17 @@ export const updateVisitorRole = async (req, res) => {
       return res.status(400).json({ success: false, error: `Invalid role. Must be one of: ${VALID_ROLES.join(', ')}` });
     }
 
-    // Update visitor role
+    // One update — DB triggers handle staff record creation/deletion
     const updated = await prisma.visitor.update({
-      where: { visitor_id },
-      data:  { role },
+      where:  { visitor_id },
+      data:   { role },
       select: { visitor_id: true, first_name: true, last_name: true, email: true, role: true },
     });
-
-    // If promoted to STAFF and no staff record exists yet → auto-create with RANGER as default
-    if (role === 'STAFF') {
-      const existing = await prisma.staff.findUnique({ where: { staff_id: visitor_id } });
-      if (!existing) {
-        const visitor = await prisma.visitor.findUnique({
-          where:  { visitor_id },
-          select: { first_name: true, last_name: true, email: true },
-        });
-        await prisma.staff.create({
-          data: {
-            staff_id:   visitor_id,
-            first_name: visitor.first_name,
-            last_name:  visitor.last_name,
-            role:       'RANGER',   // default operational role
-            email:      visitor.email,
-          },
-        });
-      }
-    }
-
-    // If demoted away from STAFF, remove the staff record
-    if (role === 'VISITOR') {
-      await prisma.staff.deleteMany({ where: { staff_id: visitor_id } });
-    }
 
     return res.status(200).json({ success: true, message: 'Visitor role updated.', visitor: updated });
   } catch (error) {
     console.error('🔥 Admin – Role Update Error:', error);
-    if (error.code === 'P2025') {
-      return res.status(404).json({ success: false, error: 'Visitor not found.' });
-    }
+    if (error.code === 'P2025') return res.status(404).json({ success: false, error: 'Visitor not found.' });
     return res.status(500).json({ success: false, error: 'Failed to update role.' });
   }
 };
@@ -105,9 +80,9 @@ export const getAllStaff = async (req, res) => {
   }
 };
 
-/** POST /api/admin/staff — promote a visitor to staff
+/** POST /api/admin/staff — promote a visitor to staff.
  *  Body: { visitor_id, role, first_name, last_name, email }
- *  Staff.staff_id = Visitor.visitor_id (same PK, shared entity pattern)
+ *  DB trigger (trg_staff_insert) auto-syncs visitor.role.
  */
 export const createStaffMember = async (req, res) => {
   try {
@@ -119,11 +94,9 @@ export const createStaffMember = async (req, res) => {
 
     // Verify visitor exists
     const visitor = await prisma.visitor.findUnique({ where: { visitor_id: parseInt(visitor_id, 10) } });
-    if (!visitor) {
-      return res.status(404).json({ success: false, error: 'Visitor not found.' });
-    }
+    if (!visitor) return res.status(404).json({ success: false, error: 'Visitor not found.' });
 
-    // Create staff record (shared PK with visitor)
+    // Create staff record — trg_staff_insert fires and syncs visitor.role automatically
     const staff = await prisma.staff.create({
       data: {
         staff_id:   parseInt(visitor_id, 10),
@@ -134,23 +107,10 @@ export const createStaffMember = async (req, res) => {
       },
     });
 
-    // Map staff role → Visitor Role enum:
-    //   ADMINISTRATOR → ADMIN
-    //   RANGER | VETERINARIAN | FIELD_ANALYST → STAFF
-    const visitorRole = role === 'ADMINISTRATOR' ? 'ADMIN' : 'STAFF';
-
-    // Always sync the visitor role (covers upgrades: e.g. VISITOR→STAFF→ADMIN)
-    await prisma.visitor.update({
-      where: { visitor_id: parseInt(visitor_id, 10) },
-      data:  { role: visitorRole },
-    });
-
     return res.status(201).json({ success: true, message: 'Staff member registered.', staff });
   } catch (error) {
     console.error('🔥 Admin – Staff Creation Error:', error);
-    if (error.code === 'P2002') {
-      return res.status(409).json({ success: false, error: 'This visitor is already a staff member.' });
-    }
+    if (error.code === 'P2002') return res.status(409).json({ success: false, error: 'This visitor is already a staff member.' });
     return res.status(500).json({ success: false, error: 'Failed to create staff member.' });
   }
 };
@@ -434,23 +394,17 @@ export const deleteFeedback = async (req, res) => {
 
 /**
  * DELETE /api/admin/staff/:id
- * Removes a staff record and demotes the linked visitor back to VISITOR role.
- * staff_id === visitor_id (shared PK pattern).
+ * Removes the staff record. DB trigger (trg_staff_delete) auto-reverts
+ * the linked visitor.role back to 'VISITOR'.
  */
 export const deleteStaff = async (req, res) => {
   try {
     const staff_id = parseInt(req.params.id, 10);
 
-    // Run both in a transaction so they succeed or fail together
-    await prisma.$transaction([
-      prisma.staff.delete({ where: { staff_id } }),
-      prisma.visitor.update({
-        where: { visitor_id: staff_id },
-        data:  { role: 'VISITOR' },
-      }),
-    ]);
+    // Single delete — trigger handles visitor.role revert automatically
+    await prisma.staff.delete({ where: { staff_id } });
 
-    return res.status(200).json({ success: true, message: 'Staff member removed and demoted to Visitor.' });
+    return res.status(200).json({ success: true, message: 'Staff member removed. Visitor role reverted.' });
   } catch (error) {
     console.error('🔥 Admin – Staff Delete Error:', error);
     if (error.code === 'P2025') return res.status(404).json({ success: false, error: 'Staff member not found.' });
