@@ -13,7 +13,7 @@ import ZoneDetail from './pages/ZoneDetail'
 import Animals from './pages/Animals'
 import AnimalDetail from './pages/AnimalDetail'
 import Tickets from './pages/Tickets'
-import AdminDashboard from './pages/AdminDashboard'
+import AdminDashboard from './pages/admin/AdminDashboard'
 import ProtectedRoute from './components/ProtectedRoute'
 
 const App = () => {
