@@ -388,6 +388,35 @@ export const deleteFeedback = async (req, res) => {
   }
 };
 
+/** POST /api/feedback — submit feedback (authenticated visitor) */
+export const submitFeedback = async (req, res) => {
+  try {
+    const visitor_id = req.visitor.visitor_id;
+    const { rating, comments } = req.body;
+
+    if (!rating || !comments) {
+      return res.status(400).json({ success: false, error: 'Rating and comments are required.' });
+    }
+    const r = parseInt(rating, 10);
+    if (r < 1 || r > 5) {
+      return res.status(400).json({ success: false, error: 'Rating must be between 1 and 5.' });
+    }
+    if (comments.trim().length < 10) {
+      return res.status(400).json({ success: false, error: 'Comments must be at least 10 characters.' });
+    }
+
+    const feedback = await prisma.feedback.create({
+      data: { visitor_id, rating: r, comments: comments.trim() },
+    });
+    return res.status(201).json({ success: true, message: 'Feedback submitted. Thank you!', feedback });
+  } catch (error) {
+    console.error('🔥 Feedback Submit Error:', error);
+    return res.status(500).json({ success: false, error: 'Failed to submit feedback.' });
+  }
+};
+
+
+
 /* ──────────────────────────────────────────
    DELETE STAFF
 ────────────────────────────────────────── */
