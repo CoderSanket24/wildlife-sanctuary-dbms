@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import { Play, Volume2, VolumeX } from "lucide-react";
+import { Play } from "lucide-react";
 
 /*
   ─────────────────────────────────────────────────
@@ -57,7 +57,6 @@ const CARD_TRANSITION = `
 const VideoCarousel = () => {
   const [activeIdx, setActiveIdx] = useState(0);
   const [liveIdx,   setLiveIdx]   = useState(0);
-  const [muted,     setMuted]     = useState(true);
   const [progress,  setProgress]  = useState(0);
 
   const activeIdxRef = useRef(0);
@@ -144,19 +143,7 @@ const VideoCarousel = () => {
             Sanctuary Stories
           </h2>
         </div>
-        {/* Mute toggle */}
-        <button
-          onClick={() => {
-            const next = !muted;
-            setMuted(next);
-            videoRefs.current.forEach((el) => { if (el) el.muted = next; });
-          }}
-          className="flex items-center gap-1.5 rounded-full border border-white/15 bg-white/5 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-white/60 backdrop-blur-sm transition hover:border-lime-300/30 hover:text-lime-300"
-        >
-          {muted ? <VolumeX size={11} /> : <Volume2 size={11} />}
-          {muted ? "Unmute" : "Mute"}
-        </button>
-      </div>
+        </div>
 
       {/* ── Carousel container ── */}
       <div className="relative w-full" style={{ height: "420px" }}>
@@ -189,7 +176,7 @@ const VideoCarousel = () => {
               <video
                 ref={(el) => (videoRefs.current[i] = el)}
                 src={video.src}
-                muted={muted}
+                muted
                 loop
                 playsInline
                 preload="auto"
