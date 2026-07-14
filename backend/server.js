@@ -10,7 +10,8 @@ import habitatRoutes from './routes/habitatRoutes.js'
 import faunaRoutes from './routes/faunaRoutes.js'
 import healthRoutes from './routes/healthRoutes.js'
 import dashboardRoutes from './routes/dashboardRoutes.js'
-import adminRoutes from './routes/adminRoutes.js'
+import adminRoutes    from './routes/adminRoutes.js'
+import feedbackRoutes from './routes/feedbackRoutes.js'
 import prisma from './config/prisma.js'
 
 dotenv.config()
@@ -33,7 +34,8 @@ app.use('/api/sanctuary', habitatRoutes)
 app.use('/api/fauna',     faunaRoutes)
 app.use('/api/medical',   healthRoutes)
 app.use('/api/dashboard', dashboardRoutes)
-app.use('/api/admin',     adminRoutes)
+app.use('/api/admin',    adminRoutes)
+app.use('/api/feedback', feedbackRoutes)
 
 app.use((err, req, res, next) => {
     console.error('🔥 Internal System Fault Hooked:', err.stack)
