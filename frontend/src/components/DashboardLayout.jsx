@@ -6,6 +6,7 @@ import {
   PawPrint,
   User,
   Ticket,
+  MessageSquare,
   LogOut,
   Menu,
   X,
@@ -15,11 +16,12 @@ import { useAuth } from "../context/AuthContext";
 import logo from "../assets/logo.png";
 
 const BASE_NAV = [
-  { to: "/dashboard",         icon: LayoutDashboard, label: "Overview"   },
-  { to: "/dashboard/zones",   icon: MapPin,           label: "Zones"     },
-  { to: "/dashboard/animals", icon: PawPrint,         label: "Animals"   },
-  { to: "/dashboard/tickets", icon: Ticket,           label: "My Tickets"},
-  { to: "/dashboard/profile", icon: User,             label: "Profile"   },
+  { to: "/dashboard",          icon: LayoutDashboard, label: "Overview"   },
+  { to: "/dashboard/zones",    icon: MapPin,           label: "Zones"     },
+  { to: "/dashboard/animals",  icon: PawPrint,         label: "Animals"   },
+  { to: "/dashboard/tickets",  icon: Ticket,           label: "My Tickets"},
+  { to: "/dashboard/feedback", icon: MessageSquare,    label: "Feedback"  },
+  { to: "/dashboard/profile",  icon: User,             label: "Profile"   },
 ];
 
 const ADMIN_NAV = { to: "/dashboard/admin", icon: Shield, label: "Admin" };

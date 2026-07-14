@@ -12,7 +12,8 @@ import Zones from './pages/Zones'
 import ZoneDetail from './pages/ZoneDetail'
 import Animals from './pages/Animals'
 import AnimalDetail from './pages/AnimalDetail'
-import Tickets from './pages/Tickets'
+import Tickets   from './pages/Tickets'
+import Feedback  from './pages/Feedback'
 import AdminDashboard from './pages/admin/AdminDashboard'
 import ProtectedRoute from './components/ProtectedRoute'
 
@@ -36,7 +37,8 @@ const App = () => {
           <Route path='/dashboard/zones/:id'    element={<ZoneDetail   />} />
           <Route path='/dashboard/animals'      element={<Animals      />} />
           <Route path='/dashboard/animals/:id'  element={<AnimalDetail />} />
-          <Route path='/dashboard/tickets'      element={<Tickets      />} />
+          <Route path='/dashboard/tickets'      element={<Tickets   />} />
+          <Route path='/dashboard/feedback'     element={<Feedback  />} />
           <Route path='/dashboard/admin'        element={<AdminDashboard />} />
         </Route>
       </Routes>
