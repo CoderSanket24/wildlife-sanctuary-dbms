@@ -442,3 +442,69 @@ export const deleteStaff = async (req, res) => {
 };
 
 
+/* ──────────────────────────────────────────
+   CONTACT MESSAGES
+────────────────────────────────────────── */
+
+/** POST /api/contact — public, no auth required */
+export const submitContactMessage = async (req, res) => {
+  try {
+    const { name, email, subject, message } = req.body;
+
+    if (!name?.trim() || !email?.trim() || !subject?.trim() || !message?.trim()) {
+      return res.status(400).json({ success: false, error: 'All fields are required.' });
+    }
+    if (!/\S+@\S+\.\S+/.test(email)) {
+      return res.status(400).json({ success: false, error: 'Enter a valid email address.' });
+    }
+    if (message.trim().length < 10) {
+      return res.status(400).json({ success: false, error: 'Message must be at least 10 characters.' });
+    }
+
+    const contact = await prisma.contactMessage.create({
+      data: { name: name.trim(), email: email.trim(), subject: subject.trim(), message: message.trim() },
+    });
+    return res.status(201).json({ success: true, message: 'Message received. We will get back to you within 24 hours!', contact });
+  } catch (error) {
+    console.error('🔥 Contact Submit Error:', error);
+    return res.status(500).json({ success: false, error: 'Failed to send message. Please try again.' });
+  }
+};
+
+/** GET /api/admin/contact — admin: list all messages */
+export const getAllContactMessages = async (req, res) => {
+  try {
+    const messages = await prisma.contactMessage.findMany({
+      orderBy: { submitted_at: 'desc' },
+    });
+    return res.status(200).json({ success: true, messages });
+  } catch (error) {
+    console.error('🔥 Admin – Contact Messages Fetch Error:', error);
+    return res.status(500).json({ success: false, error: 'Failed to fetch contact messages.' });
+  }
+};
+
+/** PATCH /api/admin/contact/:id/read — mark as read */
+export const markContactMessageRead = async (req, res) => {
+  try {
+    const id = parseInt(req.params.id, 10);
+    await prisma.contactMessage.update({ where: { id }, data: { is_read: true } });
+    return res.status(200).json({ success: true, message: 'Marked as read.' });
+  } catch (error) {
+    console.error('🔥 Admin – Contact Mark Read Error:', error);
+    return res.status(500).json({ success: false, error: 'Failed to update message.' });
+  }
+};
+
+/** DELETE /api/admin/contact/:id */
+export const deleteContactMessage = async (req, res) => {
+  try {
+    const id = parseInt(req.params.id, 10);
+    await prisma.contactMessage.delete({ where: { id } });
+    return res.status(200).json({ success: true, message: 'Contact message deleted.' });
+  } catch (error) {
+    console.error('🔥 Admin – Contact Delete Error:', error);
+    if (error.code === 'P2025') return res.status(404).json({ success: false, error: 'Message not found.' });
+    return res.status(500).json({ success: false, error: 'Failed to delete message.' });
+  }
+};

@@ -102,6 +102,19 @@ model Feedback {
   @@map("feedbacks")
 }
 
+model ContactMessage {
+  id           Int      @id @default(autoincrement())
+  name         String   @db.VarChar(150)
+  email        String   @db.VarChar(150)
+  subject      String   @db.VarChar(200)
+  message      String
+  submitted_at DateTime @default(now())
+  is_read      Boolean  @default(false)
+
+  @@map("contact_messages")
+}
+
+
 model Staff {
   staff_id      Int         @id
   first_name    String      @db.VarChar(100)

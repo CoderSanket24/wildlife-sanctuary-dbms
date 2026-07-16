@@ -12,6 +12,7 @@ import healthRoutes from './routes/healthRoutes.js'
 import dashboardRoutes from './routes/dashboardRoutes.js'
 import adminRoutes    from './routes/adminRoutes.js'
 import feedbackRoutes from './routes/feedbackRoutes.js'
+import contactRoutes  from './routes/contactRoutes.js'
 import prisma from './config/prisma.js'
 
 dotenv.config()
@@ -36,6 +37,7 @@ app.use('/api/medical',   healthRoutes)
 app.use('/api/dashboard', dashboardRoutes)
 app.use('/api/admin',    adminRoutes)
 app.use('/api/feedback', feedbackRoutes)
+app.use('/api/contact',  contactRoutes)
 
 app.use((err, req, res, next) => {
     console.error('🔥 Internal System Fault Hooked:', err.stack)

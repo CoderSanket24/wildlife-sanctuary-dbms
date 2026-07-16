@@ -19,6 +19,9 @@ import {
   getAllFeedback,
   deleteFeedback,
   deleteStaff,
+  getAllContactMessages,
+  markContactMessageRead,
+  deleteContactMessage,
 } from '../controllers/adminController.js';
 
 const router = Router();
@@ -63,6 +66,11 @@ router.delete('/surveys/:id',       deleteSurvey);
 // Feedback
 router.get('/feedback',             getAllFeedback);
 router.delete('/feedback/:id',      deleteFeedback);
+
+// Contact messages
+router.get('/contact',              getAllContactMessages);
+router.patch('/contact/:id/read',   markContactMessageRead);
+router.delete('/contact/:id',       deleteContactMessage);
 
 export default router;
 
