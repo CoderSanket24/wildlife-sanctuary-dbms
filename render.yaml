@@ -1,32 +1,26 @@
 # ─────────────────────────────────────────────────────────────────────────────
 # render.yaml — Render Blueprint
-#
-# Defines the full infrastructure for Wildlife Sanctuary DBMS on Render:
-#   1. wildlife-backend  — Node/Docker web service (Express API)
-#   2. wildlife-frontend — Static site (React + Vite build)
-#   3. wildlife-db       — Managed PostgreSQL (free tier)
+# Backend API + Managed PostgreSQL only.
+# Frontend is deployed separately on Vercel.
 #
 # How to deploy:
 #   1. Push this repo to GitHub
-#   2. Go to render.com → New → Blueprint
-#   3. Connect your repo — Render reads this file automatically
-#   4. After first deploy, manually set in Render dashboard:
-#        FRONTEND_URL  → your frontend's .onrender.com URL
-#        VITE_API_URL  → your backend's .onrender.com URL + /api
-#   5. SSH into the backend service shell and run once:
-#        node scripts/applyExtensions.js
+#   2. render.com → New → Blueprint → connect repo
+#   3. After deploy, set in Render dashboard:
+#        wildlife-backend → FRONTEND_URL = https://your-app.vercel.app
+#   4. Open wildlife-backend Shell tab and run: node scripts/applyExtensions.js
 # ─────────────────────────────────────────────────────────────────────────────
 
 services:
 
-  # ── Backend (Docker-based web service) ─────────────────────────────────────
+  # ── Backend (Docker) ────────────────────────────────────────────────────────
   - type: web
     name: wildlife-backend
-    runtime: docker
+    env: docker
     rootDir: backend
     dockerfilePath: ./Dockerfile
     plan: free
-    # Run migrations before the server starts on each deploy
+    # Run migrations before server starts on every deploy
     dockerCommand: sh -c "npx prisma migrate deploy && node server.js"
     healthCheckPath: /api/health
     envVars:
@@ -38,30 +32,11 @@ services:
         fromDatabase:
           name: wildlife-db
           property: connectionString
-      # Auto-generated strong secret — rotates on re-deploy (logs out all users)
       - key: JWT_SECRET
         generateValue: true
-      # Set this manually in the Render dashboard after the frontend is deployed
-      # Value: https://wildlife-frontend.onrender.com  (no trailing slash)
+      # Set manually after Vercel frontend is deployed (no trailing slash)
+      # Example: https://wildlife-sanctuary.vercel.app
       - key: FRONTEND_URL
-        sync: false
-
-  # ── Frontend (Static Site) ──────────────────────────────────────────────────
-  - type: static
-    name: wildlife-frontend
-    rootDir: frontend
-    buildCommand: npm install && npm run build
-    staticPublishPath: ./dist
-    plan: free
-    # SPA fallback — redirect all 404s to index.html for React Router
-    routes:
-      - type: rewrite
-        source: /*
-        destination: /index.html
-    envVars:
-      # Set this manually in the Render dashboard after the backend is deployed
-      # Value: https://wildlife-backend.onrender.com/api  (include /api)
-      - key: VITE_API_URL
         sync: false
 
 # ── Managed PostgreSQL ────────────────────────────────────────────────────────
