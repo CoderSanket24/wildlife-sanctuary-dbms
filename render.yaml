@@ -1,0 +1,71 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# render.yaml — Render Blueprint
+#
+# Defines the full infrastructure for Wildlife Sanctuary DBMS on Render:
+#   1. wildlife-backend  — Node/Docker web service (Express API)
+#   2. wildlife-frontend — Static site (React + Vite build)
+#   3. wildlife-db       — Managed PostgreSQL (free tier)
+#
+# How to deploy:
+#   1. Push this repo to GitHub
+#   2. Go to render.com → New → Blueprint
+#   3. Connect your repo — Render reads this file automatically
+#   4. After first deploy, manually set in Render dashboard:
+#        FRONTEND_URL  → your frontend's .onrender.com URL
+#        VITE_API_URL  → your backend's .onrender.com URL + /api
+#   5. SSH into the backend service shell and run once:
+#        node scripts/applyExtensions.js
+# ─────────────────────────────────────────────────────────────────────────────
+
+services:
+
+  # ── Backend (Docker-based web service) ─────────────────────────────────────
+  - type: web
+    name: wildlife-backend
+    runtime: docker
+    rootDir: backend
+    dockerfilePath: ./Dockerfile
+    plan: free
+    # Run migrations before the server starts on each deploy
+    dockerCommand: sh -c "npx prisma migrate deploy && node server.js"
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 5000
+      - key: DATABASE_URL
+        fromDatabase:
+          name: wildlife-db
+          property: connectionString
+      # Auto-generated strong secret — rotates on re-deploy (logs out all users)
+      - key: JWT_SECRET
+        generateValue: true
+      # Set this manually in the Render dashboard after the frontend is deployed
+      # Value: https://wildlife-frontend.onrender.com  (no trailing slash)
+      - key: FRONTEND_URL
+        sync: false
+
+  # ── Frontend (Static Site) ──────────────────────────────────────────────────
+  - type: static
+    name: wildlife-frontend
+    rootDir: frontend
+    buildCommand: npm install && npm run build
+    staticPublishPath: ./dist
+    plan: free
+    # SPA fallback — redirect all 404s to index.html for React Router
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      # Set this manually in the Render dashboard after the backend is deployed
+      # Value: https://wildlife-backend.onrender.com/api  (include /api)
+      - key: VITE_API_URL
+        sync: false
+
+# ── Managed PostgreSQL ────────────────────────────────────────────────────────
+databases:
+  - name: wildlife-db
+    plan: free
+    databaseName: wildlife_db

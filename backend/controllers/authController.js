@@ -57,10 +57,11 @@ export const loginVisitor = async (req, res) => {
 
         const token = jwt.sign({visitor_id:visitor.visitor_id, role: visitor.role}, JWT_SECRET, { expiresIn: '1d' })
 
+        const isProduction = process.env.NODE_ENV === 'production'
         res.cookie('session_token', token, {
             httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: 'lax',
+            secure: isProduction,
+            sameSite: isProduction ? 'none' : 'lax',
             maxAge: 24 * 60 * 60 * 1000 // 1 day
         })
 
@@ -84,11 +85,11 @@ export const loginVisitor = async (req, res) => {
 
 export const logoutVisitor = async (req, res) => {
   try {
+    const isProduction = process.env.NODE_ENV === 'production'
     res.clearCookie('session_token', {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      expires: new Date(0) 
+      secure: isProduction,
+      sameSite: isProduction ? 'none' : 'lax',
     });
 
     return res.status(200).json({

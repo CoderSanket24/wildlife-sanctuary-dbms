@@ -19,6 +19,8 @@ Built with a **React + Vite** frontend and an **Express.js + PostgreSQL** (via P
   - [Frontend Setup](#frontend-setup)
 - [Environment Variables](#environment-variables)
 - [Pages & Navigation](#pages--navigation)
+- [Docker (Local Development)](#-docker-local-development)
+- [Deployment (Render)](#️-deployment-render)
 
 ---
 
@@ -294,6 +296,76 @@ FRONTEND_URL=http://localhost:5173
 | `/dashboard/animals` | Animal directory |
 | `/dashboard/animals/:id` | Animal detail & health log |
 | `/dashboard/tickets` | Ticket booking & history |
+
+---
+
+## 🐳 Docker (Local Development)
+
+The `docker-compose.yml` at the project root starts PostgreSQL + the backend together. The frontend runs natively for hot reload.
+
+**First run (builds the backend image):**
+```bash
+docker compose up --build
+```
+
+**Subsequent runs:**
+```bash
+docker compose up
+```
+
+This automatically:
+1. Starts a PostgreSQL 16 container
+2. Waits until it is healthy
+3. Runs `prisma migrate deploy`
+4. Applies `core_extension.sql` (triggers, functions, views)
+5. Starts the backend dev server on `http://localhost:5000`
+
+**Then, in a separate terminal, start the frontend:**
+```bash
+cd frontend && npm run dev
+```
+
+**Stop everything:**
+```bash
+docker compose down        # Keep DB data
+docker compose down -v     # Delete DB volume (fresh start)
+```
+
+---
+
+## ☁️ Deployment (Render)
+
+This repo includes a [`render.yaml`](render.yaml) Blueprint that defines all three services automatically.
+
+### Services deployed
+| Service | Type | URL |
+|---|---|---|
+| `wildlife-backend` | Docker web service | `https://wildlife-backend.onrender.com` |
+| `wildlife-frontend` | Static site | `https://wildlife-frontend.onrender.com` |
+| `wildlife-db` | Managed PostgreSQL | Internal connection only |
+
+### Steps
+
+1. **Push this repo to GitHub.**
+
+2. **Go to [render.com](https://render.com) → New → Blueprint** and connect your repo.  
+   Render reads `render.yaml` and creates all services automatically.
+
+3. **Set the two cross-referencing env vars** in the Render dashboard after both services are deployed:
+
+   | Service | Variable | Value |
+   |---|---|---|
+   | `wildlife-backend` | `FRONTEND_URL` | `https://wildlife-frontend.onrender.com` |
+   | `wildlife-frontend` | `VITE_API_URL` | `https://wildlife-backend.onrender.com/api` |
+
+   Then trigger a **manual redeploy** of the frontend so Vite picks up `VITE_API_URL`.
+
+4. **Apply the core SQL extensions** — run this once via the Render backend shell (Dashboard → Shell tab):
+   ```bash
+   node scripts/applyExtensions.js
+   ```
+
+> ⚠️ Render's free PostgreSQL database is deleted after **90 days**. Back up your data before then, or upgrade to a paid plan for persistence.
 
 ---
 

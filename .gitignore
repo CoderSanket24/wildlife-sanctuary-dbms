@@ -1,0 +1,28 @@
+# ── Dependencies ──────────────────────────────────────────────────────────────
+node_modules/
+npm-debug.log*
+yarn-error.log*
+
+# ── Environment files (never commit real secrets) ─────────────────────────────
+.env
+.env.local
+.env.*.local
+
+# ── Build outputs ─────────────────────────────────────────────────────────────
+dist/
+build/
+
+# ── Prisma generated client ───────────────────────────────────────────────────
+generated/
+/backend/generated/
+
+# ── OS / Editor ───────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+.vscode/
+.idea/
+
+# ── Docker ────────────────────────────────────────────────────────────────────
+.dockerignore

@@ -7,7 +7,7 @@ export const protect = (req, res, next) => {
         const token = req.cookies.session_token
 
         if (!token) {
-            res.status(401).json({ success: false, error: 'Access Denied: Session token missing. Please log in to gain access.' })
+            return res.status(401).json({ success: false, error: 'Access Denied: Session token missing. Please log in to gain access.' })
         }
 
         const decoded = jwt.verify(token, JWT_SECRET)

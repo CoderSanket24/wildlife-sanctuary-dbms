@@ -391,7 +391,7 @@ export const deleteFeedback = async (req, res) => {
 /** POST /api/feedback — submit feedback (authenticated visitor) */
 export const submitFeedback = async (req, res) => {
   try {
-    const visitor_id = req.visitor.visitor_id;
+    const visitor_id = req.user.visitor_id;
     const { rating, comments } = req.body;
 
     if (!rating || !comments) {

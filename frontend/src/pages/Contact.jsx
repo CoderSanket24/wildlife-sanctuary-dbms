@@ -8,6 +8,7 @@ import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import heroImage from "../assets/image.png";
 import { useAuth } from "../context/AuthContext";
+import api from "../api/axiosInstance";
 
 /* ── Inline social SVGs (lucide-react has no social brand icons) ── */
 const InstagramIcon = () => (
@@ -189,13 +190,20 @@ const ContactForm = () => {
     setErrors(er => ({ ...er, [e.target.name]: undefined }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     const e2 = validate();
     if (Object.keys(e2).length) { setErrors(e2); return; }
     setStatus("submitting");
-    // Simulate network delay — replace with real API call when backend endpoint exists
-    setTimeout(() => setStatus("success"), 1200);
+    setErrors({});
+    try {
+      await api.post("/contact", form);
+      setStatus("success");
+    } catch (err) {
+      const msg = err.response?.data?.error ?? "Failed to send message. Please try again.";
+      setErrors(prev => ({ ...prev, server: msg }));
+      setStatus("idle");
+    }
   };
 
   if (status === "success") {
@@ -221,7 +229,7 @@ const ContactForm = () => {
           </p>
         </div>
         <button
-          onClick={() => { setForm({ name: "", email: "", subject: "", message: "" }); setStatus("idle"); }}
+          onClick={() => { setForm({ name: "", email: "", subject: "", message: "" }); setStatus("idle"); setErrors({}); }}
           className="mt-2 text-[10px] font-bold uppercase tracking-[0.28em] text-lime-300/60 underline underline-offset-4 transition hover:text-lime-300"
         >
           Send another message
