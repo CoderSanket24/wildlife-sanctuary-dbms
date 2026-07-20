@@ -20,8 +20,6 @@ services:
     rootDir: backend
     dockerfilePath: ./Dockerfile
     plan: free
-    # Run migrations before server starts on every deploy
-    dockerCommand: sh -c "npx prisma migrate deploy && node server.js"
     healthCheckPath: /api/health
     envVars:
       - key: NODE_ENV

@@ -33,5 +33,5 @@ COPY . .
 # Expose the port the server listens on
 EXPOSE 5000
 
-# Run the server (migrations are handled externally via render.yaml / compose)
-CMD ["node", "server.js"]
+# start.sh: runs prisma migrate deploy then starts the server
+CMD ["sh", "start.sh"]
