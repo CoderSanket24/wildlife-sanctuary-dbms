@@ -21,6 +21,10 @@ const app = express()
 const PORT = process.env.PORT || 4000
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173'
 
+// Trust Render's (and any cloud) load balancer — required for rate limiting
+// and accurate IP detection behind a reverse proxy
+app.set('trust proxy', 1)
+
 // ── Security headers ──────────────────────────────────────────────────────────
 app.use(helmet())
 
