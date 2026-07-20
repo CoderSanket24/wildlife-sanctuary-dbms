@@ -2,31 +2,35 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Play } from "lucide-react";
 
 /*
-  ─────────────────────────────────────────────────
-  DROP YOUR VIDEO FILES IN:  public/videos/
-    video1.mp4  →  e.g. elephant herd footage
-    video2.mp4  →  e.g. big cat sighting
-    video3.mp4  →  e.g. night safari / forest walk
-  ─────────────────────────────────────────────────
+  ─────────────────────────────────────────────────────────────────────
+  VIDEO HOSTING — videos are served from Cloudinary CDN (free tier).
+  Local files in public/videos/ are gitignored (too large for GitHub).
+
+  To update URLs:
+    1. Upload your MP4s to cloudinary.com (free account)
+    2. Copy each file's delivery URL and paste below
+  ─────────────────────────────────────────────────────────────────────
 */
+const CLOUD = "https://res.cloudinary.com/bbxdwe6u/video/upload";
+
 const videos = [
   {
     id: "v1",
     title: "Elephant Herd at Dawn",
     description: "A magnificent herd crossing the savannah at sunrise.",
-    src: "/videos/elephant.mp4",
+    src: `${CLOUD}/elephant_bgxufi.mp4`,
   },
   {
     id: "v2",
     title: "Big Cat Sighting",
     description: "A rare leopard resting on ancient rocks in the sanctuary.",
-    src: "/videos/big-cat.mp4",
+    src: `${CLOUD}/big-cat_usklxz.mp4`,
   },
   {
     id: "v3",
     title: "Night Safari Experience",
     description: "Nocturnal wonders discovered under the stars with our rangers.",
-    src: "/videos/night-safari.mp4",
+    src: `${CLOUD}/night-safari_kx5gb5.mp4`,
   },
 ];
 
