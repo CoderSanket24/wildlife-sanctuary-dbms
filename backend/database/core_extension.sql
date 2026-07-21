@@ -74,7 +74,7 @@ BEGIN
     RETURN NEW;
   END IF;
 
-  IF NEW.role = 'STAFF' THEN
+  IF NEW.role IN ('STAFF', 'ADMIN') THEN
     INSERT INTO staff (staff_id, first_name, last_name, role, email)
     VALUES (NEW.visitor_id, NEW.first_name, NEW.last_name, 'RANGER', NEW.email)
     ON CONFLICT (staff_id) DO NOTHING;

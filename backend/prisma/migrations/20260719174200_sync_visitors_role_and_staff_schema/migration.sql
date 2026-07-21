@@ -12,7 +12,7 @@
 -- ============================================================
 
 -- 1. Create the Role enum
-CREATE TYPE "Role" AS ENUM ('VISITOR', 'RANGER', 'ADMIN');
+CREATE TYPE "Role" AS ENUM ('VISITOR', 'STAFF', 'ADMIN');
 
 -- 2. Add role column to visitors (defaults every existing row to VISITOR)
 ALTER TABLE "visitors" ADD COLUMN "role" "Role" NOT NULL DEFAULT 'VISITOR';
