@@ -6,11 +6,14 @@ import helmet from 'helmet'
 import rateLimit from 'express-rate-limit'
 import patchBigInt from './utils/patchBigInt.js'
 import authRoutes from './routes/authRoutes.js'
+import adminRoutes from './routes/adminRoutes.js'
 import ticketRoutes from './routes/ticketRoutes.js'
 import zoneRoutes from './routes/zoneRoutes.js'
 import habitatRoutes from './routes/habitatRoutes.js'
 import faunaRoutes from './routes/faunaRoutes.js'
 import healthRoutes from './routes/healthRoutes.js'
+import feedbackRoutes from './routes/feedbackRoutes.js'
+import contactRoutes from './routes/contactRoutes.js'
 import dashboardRoutes from './routes/dashboardRoutes.js'
 import prisma from './config/prisma.js'
 
@@ -68,11 +71,14 @@ app.get('/api/health', (req, res) => {
 
 // ── Routes ────────────────────────────────────────────────────────────────────
 app.use('/api/auth',      authRoutes)
-app.use('/api/ticket',    ticketRoutes)
+app.use('/api/admin',     adminRoutes)
+app.use('/api/tickets',   ticketRoutes)
 app.use('/api/zones',     zoneRoutes)
 app.use('/api/sanctuary', habitatRoutes)
 app.use('/api/fauna',     faunaRoutes)
 app.use('/api/medical',   healthRoutes)
+app.use('/api/feedback',  feedbackRoutes)
+app.use('/api/contact',   contactRoutes)
 app.use('/api/dashboard', dashboardRoutes)
 
 // ── 404 handler ───────────────────────────────────────────────────────────────
