@@ -1,8 +1,8 @@
 # 🌿 Wildlife Sanctuary DBMS
 
-A full-stack **Database Management System** for managing a wildlife sanctuary — tracking animals, zones, enclosures, staff, health records, visitor tickets, and more.
+A full-stack **Database Management System** for managing a wildlife sanctuary — tracking animals, zones, enclosures, staff, health records, visitor tickets, surveys, and admin controls.
 
-Built with a **React + Vite** frontend and an **Express.js + PostgreSQL** (via Prisma ORM) backend.
+Built with a **React + Vite** frontend, an **Express.js + PostgreSQL** (via Prisma ORM) backend, and custom PL/pgSQL database triggers & views.
 
 ---
 
@@ -11,7 +11,7 @@ Built with a **React + Vite** frontend and an **Express.js + PostgreSQL** (via P
 - [Features](#features)
 - [Tech Stack](#tech-stack)
 - [Project Structure](#project-structure)
-- [Database Schema](#database-schema)
+- [Database Schema & Triggers](#database-schema--triggers)
 - [API Routes](#api-routes)
 - [Getting Started](#getting-started)
   - [Prerequisites](#prerequisites)
@@ -20,20 +20,20 @@ Built with a **React + Vite** frontend and an **Express.js + PostgreSQL** (via P
 - [Environment Variables](#environment-variables)
 - [Pages & Navigation](#pages--navigation)
 - [Docker (Local Development)](#-docker-local-development)
-- [Deployment (Render)](#️-deployment-render)
+- [Deployment Architecture (Render + Vercel)](#️-deployment-architecture-render--vercel)
 
 ---
 
 ## ✨ Features
 
-- 🔐 **Authentication** — Visitor registration & login with JWT (HTTP-only cookies) and Argon2 password hashing
-- 🗺️ **Zone Management** — Browse and manage sanctuary zones with climate types and camera trap counts
-- 🐘 **Animal Tracking** — View animals by species, health status, enclosure, and survey sightings
-- 🏥 **Health Logs** — Veterinarians log diagnoses, treatments, and isolation flags for animals
-- 🎟️ **Ticket Booking** — Visitors can book zone entry tickets with GST calculation
-- 📊 **Dashboard** — Role-based dashboard with stats for admins, rangers, and visitors
-- 👤 **Profile Management** — View and manage visitor/staff profile details
-- 💬 **Feedback System** — Visitors can submit ratings and comments
+- 🔐 **Authentication & RBAC** — Visitor registration & login with JWT (HTTP-only cookies), Argon2 password hashing, and role-based access control (`VISITOR`, `STAFF`, `ADMIN`).
+- 🗺️ **Zone Management** — Browse and manage sanctuary zones with climate types, capacity indicators, and ticket pricing.
+- 🐘 **Animal & Enclosure Tracking** — View animals by species, scientific classification, health status, enclosure, and survey sightings.
+- 🏥 **Veterinary Health Logs** — Veterinarians log diagnoses, treatments, and isolation flags for animals under care.
+- 📍 **Field Surveying** — Geospatial sighting logs (`latitude`, `longitude`, sighting counts) recorded by field rangers.
+- 🎟️ **Automated Ticket Billing** — Visitors book zone entry tickets with automated base cost and 18% GST calculation via database triggers.
+- ⚡ **Automated Role Sync** — Triggers keep `visitors.role` and `staff` records in sync dynamically.
+- 📊 **Interactive Admin Dashboard** — Real-time analytics, zone summaries, health alerts, user management, and contact message management.
 
 ---
 
@@ -44,23 +44,23 @@ Built with a **React + Vite** frontend and an **Express.js + PostgreSQL** (via P
 |---|---|
 | React 19 | UI framework |
 | Vite 8 | Build tool & dev server |
-| React Router v7 | Client-side routing |
+| React Router v7 | Client-side routing (with Vercel SPA rewrite rules) |
 | Tailwind CSS v4 | Styling |
-| Axios | HTTP client |
-| React Hook Form | Form state management |
-| Lucide React | Icons |
+| Axios | HTTP client (configured with credentials) |
+| React Hook Form | Form state management & validation |
+| Lucide React | Modern icons |
 
 ### Backend
 | Technology | Purpose |
 |---|---|
 | Node.js + Express 5 | REST API server |
-| PostgreSQL | Relational database |
+| PostgreSQL 16 | Relational database |
 | Prisma ORM 7 | Database schema & query layer |
 | Argon2 | Password hashing |
 | JSON Web Tokens | Authentication |
-| Zod | Request validation |
-| Cookie Parser | HTTP-only cookie support |
-| dotenv | Environment configuration |
+| Zod | Schema validation |
+| express-rate-limit | Rate limiting & brute-force protection |
+| Helmet | HTTP security headers |
 
 ---
 
@@ -69,95 +69,190 @@ Built with a **React + Vite** frontend and an **Express.js + PostgreSQL** (via P
 ```
 wildlife-sanctuary-dbms/
 ├── backend/
-│   ├── config/             # DB connection config
+│   ├── config/             # DB connection config (Prisma client)
 │   ├── controllers/        # Route handler logic
-│   ├── database/           # Database helpers
-│   ├── middlewares/        # Auth & validation middleware
+│   ├── database/           # Core PL/pgSQL extensions & triggers
+│   │   └── core_extension.sql
+│   ├── middlewares/        # Auth & Zod validation middleware
 │   ├── prisma/
-│   │   ├── schema.prisma   # Database models
-│   │   └── migrations/     # Migration history
+│   │   ├── schema.prisma   # Database models & enums
+│   │   └── migrations/     # Prisma migration history
 │   ├── routes/             # API route definitions
+│   │   ├── adminRoutes.js
 │   │   ├── authRoutes.js
+│   │   ├── contactRoutes.js
 │   │   ├── dashboardRoutes.js
 │   │   ├── faunaRoutes.js
+│   │   ├── feedbackRoutes.js
 │   │   ├── habitatRoutes.js
 │   │   ├── healthRoutes.js
 │   │   ├── ticketRoutes.js
 │   │   └── zoneRoutes.js
-│   ├── utils/              # Utility helpers
-│   ├── server.js           # Express app entry point
-│   └── .env                # Environment variables (not committed)
+│   ├── utils/              # Utility helpers (patchBigInt)
+│   ├── start.sh            # Production startup script (migrations + extensions)
+│   ├── Dockerfile          # Multi-stage Docker build
+│   └── server.js           # Express app entry point
 │
-└── frontend/
-    ├── public/             # Static assets
-    └── src/
-        ├── api/            # Axios API calls
-        ├── components/     # Reusable UI components
-        ├── constants/      # App-wide constants
-        ├── context/        # React context providers
-        ├── hooks/          # Custom React hooks
-        ├── pages/          # Route-level page components
-        │   ├── Home.jsx
-        │   ├── AboutUs.jsx
-        │   ├── Services.jsx
-        │   ├── Contact.jsx
-        │   ├── SignIn.jsx
-        │   ├── SignUp.jsx
-        │   ├── Dashboard.jsx
-        │   ├── Profile.jsx
-        │   ├── Zones.jsx
-        │   ├── ZoneDetail.jsx
-        │   ├── Animals.jsx
-        │   ├── AnimalDetail.jsx
-        │   └── Tickets.jsx
-        ├── App.jsx         # Root router
-        └── main.jsx        # React entry point
+├── frontend/
+│   ├── public/             # Static assets (video carousel)
+│   ├── vercel.json         # SPA rewrite configuration
+│   └── src/
+│       ├── api/            # Axios API client
+│       ├── components/     # Reusable UI components & modals
+│       ├── constants/      # App constants
+│       ├── context/        # React Context (AuthContext)
+│       ├── pages/          # Application routes & Admin tabs
+│       ├── App.jsx         # Root router configuration
+│       └── main.jsx        # Entry point
+└── render.yaml             # Render Blueprint configuration
 ```
 
 ---
 
-## 🗄️ Database Schema
+## 🗄️ Database Schema & Triggers
 
-The database uses **PostgreSQL** with the following models managed by Prisma:
+### 📐 Entity Relationship Diagram (ERD)
+
+```mermaid
+classDiagram
+    direction TB
+
+    class VISITOR {
+        +int visitor_id PK
+        +string email
+        +string first_name
+        +string last_name
+        +int age
+        +Role role
+        +datetime created_at
+    }
+
+    class STAFF {
+        +int staff_id PK
+        +string first_name
+        +string last_name
+        +StaffRole role
+        +string email
+    }
+
+    class ZONE {
+        +int zone_id PK
+        +string name
+        +ClimateType climate
+        +int camera_traps_count
+        +decimal ticket_price
+    }
+
+    class ENCLOSURE {
+        +int enclosure_id PK
+        +int zone_id FK
+        +string code_name
+        +int max_capacity
+        +int current_occupancy
+    }
+
+    class ANIMAL {
+        +int animal_id PK
+        +int enclosure_id FK
+        +string species
+        +string scientific_name
+        +string nickname
+        +date birth_date
+        +AnimalStatus health_status
+    }
+
+    class TICKET {
+        +bigint ticket_id PK
+        +int visitor_id FK
+        +int zone_id FK
+        +datetime booking_date
+        +decimal base_cost
+        +decimal gst_amount
+        +decimal total_amount
+    }
+
+    class HEALTH_LOG {
+        +bigint log_id PK
+        +int animal_id FK
+        +int veterinarian_id FK
+        +datetime logged_at
+        +string diagnosis
+        +string treatment
+        +boolean require_isolation
+    }
+
+    class SURVEY {
+        +bigint survey_id PK
+        +int animal_id FK
+        +datetime survey_date
+        +int sighting_count
+        +decimal latitude
+        +decimal longitude
+    }
+
+    VISITOR "1" -- "0..1" STAFF : promoted_to
+    VISITOR "1" -- "*" TICKET : books
+    ZONE "1" -- "*" ENCLOSURE : contains
+    ZONE "1" -- "*" TICKET : issued_for
+    ENCLOSURE "1" -- "*" ANIMAL : houses
+    ANIMAL "1" -- "*" HEALTH_LOG : medical_history
+    STAFF "1" -- "*" HEALTH_LOG : attends
+    ANIMAL "1" -- "*" SURVEY : sightings
+```
+
+---
+
+### Core Models
 
 | Model | Description |
 |---|---|
 | `Zone` | Sanctuary zones with climate type and ticket pricing |
-| `Enclosure` | Habitats within zones with capacity tracking |
-| `Animal` | Animals with species, health status, and survey data |
-| `Survey` | GPS sighting records for animals |
-| `Visitor` | Registered users (visitors and staff) |
+| `Enclosure` | Habitats within zones with occupancy capacity tracking |
+| `Animal` | Animals with species, health status, and enclosure relationships |
+| `Survey` | Field sighting records with GPS coordinates (`latitude`, `longitude`) |
+| `Visitor` | Registered accounts with role-based access control (`VISITOR`, `STAFF`, `ADMIN`) |
 | `Ticket` | Zone entry bookings with GST cost breakdown |
-| `Feedback` | Visitor ratings and comments |
-| `Staff` | Staff members (rangers, vets, admins) |
+| `Staff` | Staff members mapped to visitors (`RANGER`, `VETERINARIAN`, `ADMINISTRATOR`, `FIELD_ANALYST`) |
 | `HealthLog` | Medical records logged by veterinarians |
+| `Feedback` | Visitor ratings and comments |
+| `ContactMessage` | Public contact submissions |
 
-### Enums
+### Database Triggers & Views (`core_extension.sql`)
 
-- **`AnimalStatus`** — `HEALTHY`, `UNDER_CARE`, `CRITICAL`, `QUARANTINED`
-- **`ClimateType`** — `TROPICAL`, `TEMPERATE`, `ARID`, `WETLAND`, `ALPINE`
-- **`Role`** — `VISITOR`, `RANGER`, `ADMIN`
-- **`StaffRole`** — `RANGER`, `VETERINARIAN`, `ADMINISTRATOR`, `FIELD_ANALYST`
+The project uses advanced PostgreSQL features defined in [`backend/database/core_extension.sql`](backend/database/core_extension.sql):
+
+| Object | Type | Purpose |
+|---|---|---|
+| `fn_calculate_ticket_costs` | Trigger | Auto-computes `base_cost`, 18% GST, and `total_amount` on ticket insert |
+| `fn_enforce_enclosure_capacity` | Trigger | Prevents animal insert if enclosure is full; auto-increments `current_occupancy` |
+| `fn_sync_staff_on_role_change` | Trigger | Auto-creates/updates `staff` row (`ADMIN` → `ADMINISTRATOR`, `STAFF` → `RANGER`) or deletes if demoted to `VISITOR` |
+| `fn_book_safari_ticket` | Function | Validates visitor & zone in a single database transaction |
+| `vw_zone_summary` | View | Zone enclosure count, occupancy %, and revenue summary |
+| `vw_animal_health_overview` | View | Animal health overview with log & survey counts |
+| `vw_health_alerts` | View | Alerts for animals marked `CRITICAL` or `UNDER_CARE` with attending vet notes |
+| `vw_visitor_booking_summary` | View | Per-visitor booking history and total spend |
 
 ---
 
 ## 🌐 API Routes
 
-| Method | Endpoint | Description |
-|---|---|---|
-| `POST` | `/api/auth/signup` | Register a new visitor |
-| `POST` | `/api/auth/signin` | Log in and receive JWT cookie |
-| `POST` | `/api/auth/signout` | Clear auth cookie |
-| `GET` | `/api/zones` | List all sanctuary zones |
-| `GET` | `/api/zones/:id` | Get zone details |
-| `GET` | `/api/sanctuary` | List all enclosures/habitats |
-| `GET` | `/api/fauna` | List all animals |
-| `GET` | `/api/fauna/:id` | Get individual animal details |
-| `GET` | `/api/medical` | List health logs |
-| `POST` | `/api/medical` | Create a health log entry |
-| `GET` | `/api/ticket` | Get tickets for the current visitor |
-| `POST` | `/api/ticket` | Book a new zone ticket |
-| `GET` | `/api/dashboard` | Get dashboard summary stats |
+### Authentication (`/api/auth`)
+- `POST /api/auth/register` — Register a new visitor
+- `POST /api/auth/login` — Sign in (sets HTTP-only cookie)
+- `POST /api/auth/logout` — Sign out & clear cookie
+- `GET  /api/auth/me` — Fetch current user session
+
+### Tickets (`/api/tickets`)
+- `GET  /api/tickets/my` — Fetch current visitor's booking history
+- `POST /api/tickets/book` — Book a safari zone ticket
+
+### Admin Control Panel (`/api/admin` — Requires `ADMIN` role)
+- `GET  /api/admin/stats` — Overall sanctuary statistics & analytics
+- `GET  /api/admin/visitors` & `PUT /api/admin/visitors/:id/role` — Manage users & promote roles
+- `GET  /api/admin/staff` & `POST /api/admin/staff` — Manage staff records
+- `GET  /api/admin/enclosures` — Enclosure occupancy management
+- `GET  /api/admin/health-logs` & `GET /api/admin/surveys` — View medical logs and field surveys
+- `GET  /api/admin/contact` — Manage contact submissions
 
 ---
 
@@ -183,9 +278,12 @@ The database uses **PostgreSQL** with the following models managed by Prisma:
    npm install
    ```
 
-3. **Configure environment variables** (see [Environment Variables](#environment-variables)):
-   ```bash
-   # Create a .env file in the backend/ directory and fill in your values
+3. **Configure environment variables:** Create a `.env` file in the `backend/` directory:
+   ```env
+   PORT=5000
+   DATABASE_URL="postgresql://postgres:postgres@localhost:5432/wildlife_db?schema=public"
+   JWT_SECRET=your_super_secret_jwt_key
+   FRONTEND_URL=http://localhost:5173
    ```
 
 4. **Run database migrations:**
@@ -193,35 +291,9 @@ The database uses **PostgreSQL** with the following models managed by Prisma:
    npx prisma migrate dev
    ```
 
-5. **Apply the core database extensions:**
-
-   After the Prisma schema is in place, run [`backend/database/core_extension.sql`](backend/database/core_extension.sql) against the same PostgreSQL database. This script installs all trigger functions, helper functions, and analytics views that sit on top of the Prisma-managed tables:
-
-   | Object | Type | Purpose |
-   |---|---|---|
-   | `fn_calculate_ticket_costs` | Trigger Function | Auto-computes `base_cost`, 18% GST, and `total_amount` on ticket insert |
-   | `fn_enforce_enclosure_capacity` | Trigger Function | Blocks animal inserts when enclosure is full; increments `current_occupancy` |
-   | `fn_sync_visitor_to_staff` | Trigger Function | Auto-creates a staff record when a visitor registers as `RANGER` or `ADMIN` |
-   | `fn_book_safari_ticket` | Function | Validates visitor & zone, then inserts a ticket in a DB transaction |
-   | `v_zone_popularity_analytics` | View | Zone bookings, revenue, and avg ticket yield |
-   | `v_visitor_age_demographics` | View | Visitor age bracket distribution |
-   | `vw_zone_summary` | View | Per-zone enclosure count, occupancy %, and revenue |
-   | `vw_animal_health_overview` | View | Animal details with health log and survey counts |
-   | `vw_health_alerts` | View | Animals currently `CRITICAL` or `UNDER_CARE` with latest vet note |
-   | `vw_visitor_booking_summary` | View | Per-visitor booking history and total spend |
-
-   **Using `psql`:**
+5. **Apply core SQL extensions (Triggers & Views):**
    ```bash
-   psql -U <user> -d <database> -f backend/database/core_extension.sql
-   ```
-
-   **Using pgAdmin / any SQL client:** open `backend/database/core_extension.sql` and execute it against your `wildlife_db` database.
-
-   > ⚠️ **This step is required.** The ticket billing, enclosure capacity enforcement, and dashboard analytics will not work correctly without it.
-
-6. **Generate Prisma client:**
-   ```bash
-   npx prisma generate
+   node scripts/applyExtensions.js
    ```
 
 6. **Start the development server:**
@@ -248,124 +320,31 @@ The database uses **PostgreSQL** with the following models managed by Prisma:
    ```bash
    npm run dev
    ```
-   The app will be available at `http://localhost:5173`.
-
----
-
-## 🔑 Environment Variables
-
-Create a `.env` file in the `backend/` directory:
-
-```env
-# Server port
-PORT=5000
-
-# PostgreSQL connection string
-DATABASE_URL="postgresql://<user>:<password>@localhost:5432/wildlife_db?schema=public"
-
-# JWT secret key
-JWT_SECRET=your_super_secret_jwt_key
-
-# Frontend origin (for CORS)
-FRONTEND_URL=http://localhost:5173
-```
-
-> ⚠️ **Never commit your `.env` file.** It is already listed in `.gitignore`.
-
----
-
-## 🗺️ Pages & Navigation
-
-### Public Routes
-| Path | Page |
-|---|---|
-| `/` | Home |
-| `/about` | About Us |
-| `/services` | Services |
-| `/contact` | Contact |
-| `/signin` | Sign In |
-| `/signup` | Sign Up |
-
-### Protected Routes (require login)
-| Path | Page |
-|---|---|
-| `/dashboard` | Main dashboard with stats |
-| `/dashboard/profile` | User profile |
-| `/dashboard/zones` | All sanctuary zones |
-| `/dashboard/zones/:id` | Zone detail & enclosures |
-| `/dashboard/animals` | Animal directory |
-| `/dashboard/animals/:id` | Animal detail & health log |
-| `/dashboard/tickets` | Ticket booking & history |
+   The application will be available at `http://localhost:5173`.
 
 ---
 
 ## 🐳 Docker (Local Development)
 
-The `docker-compose.yml` at the project root starts PostgreSQL + the backend together. The frontend runs natively for hot reload.
+The repository includes a complete local Docker environment (`docker-compose.yml`).
 
-**First run (builds the backend image):**
 ```bash
+# Start backend API + PostgreSQL together
 docker compose up --build
-```
 
-**Subsequent runs:**
-```bash
-docker compose up
-```
-
-This automatically:
-1. Starts a PostgreSQL 16 container
-2. Waits until it is healthy
-3. Runs `prisma migrate deploy`
-4. Applies `core_extension.sql` (triggers, functions, views)
-5. Starts the backend dev server on `http://localhost:5000`
-
-**Then, in a separate terminal, start the frontend:**
-```bash
+# In a separate terminal, start the frontend
 cd frontend && npm run dev
-```
-
-**Stop everything:**
-```bash
-docker compose down        # Keep DB data
-docker compose down -v     # Delete DB volume (fresh start)
 ```
 
 ---
 
-## ☁️ Deployment (Render)
+## ☁️ Deployment Architecture (Render + Vercel)
 
-This repo includes a [`render.yaml`](render.yaml) Blueprint that defines all three services automatically.
+This application is deployed across modern cloud services for maximum performance and stability:
 
-### Services deployed
-| Service | Type | URL |
-|---|---|---|
-| `wildlife-backend` | Docker web service | `https://wildlife-backend.onrender.com` |
-| `wildlife-frontend` | Static site | `https://wildlife-frontend.onrender.com` |
-| `wildlife-db` | Managed PostgreSQL | Internal connection only |
-
-### Steps
-
-1. **Push this repo to GitHub.**
-
-2. **Go to [render.com](https://render.com) → New → Blueprint** and connect your repo.  
-   Render reads `render.yaml` and creates all services automatically.
-
-3. **Set the two cross-referencing env vars** in the Render dashboard after both services are deployed:
-
-   | Service | Variable | Value |
-   |---|---|---|
-   | `wildlife-backend` | `FRONTEND_URL` | `https://wildlife-frontend.onrender.com` |
-   | `wildlife-frontend` | `VITE_API_URL` | `https://wildlife-backend.onrender.com/api` |
-
-   Then trigger a **manual redeploy** of the frontend so Vite picks up `VITE_API_URL`.
-
-4. **Apply the core SQL extensions** — run this once via the Render backend shell (Dashboard → Shell tab):
-   ```bash
-   node scripts/applyExtensions.js
-   ```
-
-> ⚠️ Render's free PostgreSQL database is deleted after **90 days**. Back up your data before then, or upgrade to a paid plan for persistence.
+- **Backend API & PostgreSQL**: Hosted on **Render** using Docker and Managed PostgreSQL.
+  - On every deployment, `start.sh` automatically runs `npx prisma migrate deploy` and executes `node scripts/applyExtensions.js` to ensure all triggers and views are live.
+- **Frontend SPA**: Hosted on **Vercel** with `vercel.json` rewrite rules configured for seamless React Router client-side navigation.
 
 ---
 
