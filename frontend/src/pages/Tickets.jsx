@@ -42,7 +42,7 @@ const Tickets = () => {
   const fetchTickets = async () => {
     try {
       setLoading(true);
-      const res = await api.get("/ticket/my");
+      const res = await api.get("/tickets/my");
       setTickets(res.data.tickets);
       setSummary(res.data.summary);   // from vw_visitor_booking_summary
     } catch (err) {

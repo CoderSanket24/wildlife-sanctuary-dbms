@@ -51,7 +51,7 @@ const Dashboard = () => {
 
   useEffect(() => {
     Promise.all([
-      api.get("/ticket/my"),
+      api.get("/tickets/my"),
       api.get("/dashboard/alerts"),
     ])
       .then(([ticketRes, alertRes]) => {

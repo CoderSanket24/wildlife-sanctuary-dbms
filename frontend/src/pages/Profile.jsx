@@ -63,7 +63,7 @@ const Profile = () => {
 
   /* Fetch visitor booking summary from the view-backed endpoint */
   useEffect(() => {
-    api.get("/ticket/my")
+    api.get("/tickets/my")
       .then(res => setSummary(res.data.summary))
       .catch(() => {}); // non-critical — page still works without it
   }, []);

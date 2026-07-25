@@ -39,7 +39,7 @@ const BookTicketModal = ({ onClose, onBooked, preselectedZoneId }) => {
     setBooking(true);
     setError(null);
     try {
-      const res = await api.post("/ticket/book", { zone_id: selectedZone.zone_id });
+      const res = await api.post("/tickets/book", { zone_id: selectedZone.zone_id });
       setSuccess(res.data.ticket);
       onBooked(res.data.ticket);
     } catch (err) {
