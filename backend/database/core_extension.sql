@@ -65,19 +65,28 @@ DROP FUNCTION IF EXISTS fn_sync_visitor_to_staff();
 
 
 -- TRIGGER 1: visitors.role → staff table
---   STAFF   → auto-create staff row (role = 'RANGER') if absent
+--   ADMIN   → auto-create / update staff row (role = 'ADMINISTRATOR')
+--   STAFF   → auto-create / update staff row (role = 'RANGER')
 --   VISITOR → delete staff row if it exists
 CREATE OR REPLACE FUNCTION fn_sync_staff_on_role_change()
 RETURNS TRIGGER AS $$
+DECLARE
+  v_staff_role VARCHAR(50);
 BEGIN
   IF NEW.role = OLD.role OR pg_trigger_depth() > 1 THEN
     RETURN NEW;
   END IF;
 
   IF NEW.role IN ('STAFF', 'ADMIN') THEN
+    v_staff_role := CASE WHEN NEW.role = 'ADMIN' THEN 'ADMINISTRATOR' ELSE 'RANGER' END;
+
     INSERT INTO staff (staff_id, first_name, last_name, role, email)
-    VALUES (NEW.visitor_id, NEW.first_name, NEW.last_name, 'RANGER', NEW.email)
-    ON CONFLICT (staff_id) DO NOTHING;
+    VALUES (NEW.visitor_id, NEW.first_name, NEW.last_name, v_staff_role, NEW.email)
+    ON CONFLICT (staff_id) DO UPDATE
+      SET role = EXCLUDED.role,
+          first_name = EXCLUDED.first_name,
+          last_name = EXCLUDED.last_name,
+          email = EXCLUDED.email;
   END IF;
 
   IF NEW.role = 'VISITOR' THEN
