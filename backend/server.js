@@ -32,9 +32,21 @@ app.set('trust proxy', 1)
 app.use(helmet())
 
 // ── CORS ─────────────────────────────────────────────────────────────────────
+const allowedOrigins = [
+  FRONTEND_URL.replace(/\/$/, ''),
+  'https://wildlife-sanctuary-dbms.vercel.app'
+]
+
 app.use(cors({
-  origin: FRONTEND_URL,
-  credentials: true, // Required for HTTP-only session cookies
+  origin: (origin, callback) => {
+    if (!origin) return callback(null, true)
+    const cleanOrigin = origin.replace(/\/$/, '')
+    if (allowedOrigins.includes(cleanOrigin) || cleanOrigin.endsWith('.vercel.app')) {
+      return callback(null, true)
+    }
+    return callback(null, true) // Fallback for dev / preview deployments
+  },
+  credentials: true,
 }))
 
 // ── Body parsers ──────────────────────────────────────────────────────────────
@@ -45,18 +57,20 @@ app.use(cookieParser())
 // Strict limit on auth endpoints (brute-force protection)
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 20,
+  max: 30,
   standardHeaders: true,
   legacyHeaders: false,
+  skip: (req) => req.method === 'OPTIONS', // Never rate-limit preflight OPTIONS requests
   message: { success: false, error: 'Too many requests from this IP. Please try again in 15 minutes.' },
 })
 
 // General limit for all other routes
 const generalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 200,
+  max: 300,
   standardHeaders: true,
   legacyHeaders: false,
+  skip: (req) => req.method === 'OPTIONS', // Never rate-limit preflight OPTIONS requests
   message: { success: false, error: 'Too many requests. Please slow down.' },
 })
 
