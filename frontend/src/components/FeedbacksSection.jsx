@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Star, Quote, Leaf } from "lucide-react";
-import axios from "axios";
+import api from "../api/axiosInstance";
 
 /* ── Helpers ─────────────────────────────────────── */
 const StarRow = ({ rating, size = 13 }) => (
@@ -93,8 +93,8 @@ const FeedbacksSection = () => {
 
   /* Fetch public feedback */
   useEffect(() => {
-    axios
-      .get("http://localhost:5000/api/feedback", { withCredentials: true })
+    api
+      .get("/feedback")
       .then(r => setFeedback(r.data.feedback ?? []))
       .catch(() => {})
       .finally(() => setLoading(false));
@@ -204,7 +204,7 @@ const FeedbacksSection = () => {
 
       {/* ── Divider ── */}
       <div className="mx-auto mt-16 w-full max-w-350 px-6 md:px-10 xl:px-16">
-        <div className="h-px w-full bg-gradient-to-r from-transparent via-white/8 to-transparent" />
+        <div className="h-px w-full bg-linear-to-r from-transparent via-white/8 to-transparent" />
       </div>
     </section>
   );
