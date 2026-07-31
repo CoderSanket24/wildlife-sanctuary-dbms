@@ -4,6 +4,7 @@ import HeroBackground from "../components/HeroBackground";
 import HeroContent from "../components/HeroContent";
 import HeroTagline from "../components/HeroTagline";
 import VideoCarousel from "../components/VideoCarousel";
+import FeedbacksSection from "../components/FeedbacksSection";
 import Footer from "../components/Footer";
 
 const Home = () => {
@@ -22,6 +23,7 @@ const Home = () => {
         <HeroTagline />
       </HeroBackground>
 
+      <FeedbacksSection />
       <Footer />
     </>
   );
