@@ -415,6 +415,36 @@ export const submitFeedback = async (req, res) => {
   }
 };
 
+/** GET /api/feedback — public, returns all feedback (visitor last name truncated for privacy) */
+export const getPublicFeedback = async (req, res) => {
+  try {
+    const feedback = await prisma.feedback.findMany({
+      orderBy: [{ rating: 'desc' }, { submitted_at: 'desc' }],
+      take: 50,
+      include: {
+        visitor: { select: { first_name: true, last_name: true } },
+      },
+    });
+
+    // Mask last name to initial for privacy  e.g. "Aarav S."
+    const safe = feedback.map(f => ({
+      feedback_id:  f.feedback_id,
+      rating:       f.rating,
+      comments:     f.comments,
+      submitted_at: f.submitted_at,
+      author: f.visitor
+        ? `${f.visitor.first_name} ${f.visitor.last_name.charAt(0)}.`
+        : 'Anonymous',
+    }));
+
+    return res.status(200).json({ success: true, feedback: safe });
+  } catch (error) {
+    console.error('🔥 Public Feedback Fetch Error:', error);
+    return res.status(500).json({ success: false, error: 'Failed to load feedback.' });
+  }
+};
+
+
 
 
 /* ──────────────────────────────────────────
