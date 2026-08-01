@@ -16,10 +16,12 @@ import Tickets   from './pages/Tickets'
 import Feedback  from './pages/Feedback'
 import AdminDashboard from './pages/admin/AdminDashboard'
 import ProtectedRoute from './components/ProtectedRoute'
+import RenderWakeupModal from './components/RenderWakeupModal'
 
 const App = () => {
   return (
     <div>
+      <RenderWakeupModal />
       <Routes>
         {/* ── Public routes ── */}
         <Route path='/' element={<Home />} />
