@@ -16,6 +16,8 @@ import feedbackRoutes from './routes/feedbackRoutes.js'
 import contactRoutes from './routes/contactRoutes.js'
 import dashboardRoutes from './routes/dashboardRoutes.js'
 import prisma from './config/prisma.js'
+import ping from 'ping'
+import { Server } from 'socket.io'
 
 dotenv.config()
 patchBigInt()
@@ -53,6 +55,13 @@ app.use(cors({
 app.use(express.json())
 app.use(cookieParser())
 
+// 🌐 Network Layer: IP Logging Middleware 🌐
+app.use((req, res, next) => {
+  // Logs the logical IPv4 or IPv6 address (demonstrates Unit II concepts)
+  console.log(`[Network Layer] ${req.method} request to ${req.path} from IP: ${req.ip}`);
+  next();
+})
+
 // ── Rate limiters ─────────────────────────────────────────────────────────────
 // Strict limit on auth endpoints (brute-force protection)
 const authLimiter = rateLimit({
@@ -83,6 +92,24 @@ app.get('/api/health', (req, res) => {
   res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() })
 })
 
+// 🌐 Network Layer: ICMP Ping Health Check 🌐
+app.get('/api/network-health', async (req, res) => {
+  try {
+    // Pinging Google's Public DNS (8.8.8.8) to test outbound WAN connectivity
+    // Demonstrates Unit II: ICMP Protocol
+    const result = await ping.promise.probe('8.8.8.8');
+    res.status(200).json({
+      protocol: 'ICMP',
+      target: result.host,
+      isAlive: result.alive,
+      latencyMs: result.time,
+      packetLoss: result.packetLoss
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: 'ICMP Ping failed' });
+  }
+})
+
 // ── Routes ────────────────────────────────────────────────────────────────────
 app.use('/api/auth',      authRoutes)
 app.use('/api/admin',     adminRoutes)
@@ -110,6 +137,24 @@ app.use((err, req, res, next) => {
 const server = app.listen(PORT, () => {
   console.log(`✅ Server listening on http://localhost:${PORT}`)
 })
+
+// 🌐 Transport Layer: TCP/WebSockets using Socket.io 🌐
+const io = new Server(server, {
+  cors: {
+    origin: allowedOrigins,
+    credentials: true,
+  }
+})
+
+io.on('connection', (socket) => {
+  console.log(`[Transport Layer] TCP Socket Connected: ${socket.id}`);
+  socket.on('disconnect', () => {
+    console.log(`[Transport Layer] TCP Socket Disconnected: ${socket.id}`);
+  });
+});
+
+// Make io accessible in controllers
+app.locals.io = io;
 
 // ── Graceful shutdown (SIGTERM from Docker / Render, SIGINT from Ctrl+C) ──────
 const shutdown = async (signal) => {

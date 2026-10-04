@@ -37,6 +37,12 @@ export const purchaseSafariTicket = async (req, res) => {
             }
         });
 
+        // Demonstrates Unit III: Transport Layer (WebSockets)
+        // Emit event to all connected admin clients
+        if (req.app.locals.io) {
+            req.app.locals.io.emit('new_ticket', activeTicket);
+        }
+
         return res.status(200).json({ success: true, message: 'Safari ticket successfully issued. Transaction sealed.', ticket: activeTicket });
     } catch (error) {
         console.error('🔥 Transactional Booking Pipeline Aborted:', error.message);
