@@ -1,6 +1,7 @@
 import argon2 from 'argon2'
 import jwt from 'jsonwebtoken'
 import prisma from '../config/prisma.js'
+import { sendEmail } from '../utils/mailer.js'
 
 const JWT_SECRET = process.env.JWT_SECRET
 
@@ -34,6 +35,14 @@ export const registerVisitor = async (req, res) => {
                 created_at: true
             }
         })
+        
+        // Demonstrates Unit III: Application Layer (SMTP) - Send welcome email
+        await sendEmail(
+            email, 
+            "Welcome to the Wildlife Sanctuary!", 
+            `Hi ${first_name}, thank you for registering with us. We look forward to your visit!`
+        );
+
         return res.status(201).json({ success: true, message: 'Visitor registered successfully.', user: newVisitor })
     } catch (error) {
         return res.status(500).json({ success: false, message: 'Error occurred while registering visitor.' })
