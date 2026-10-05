@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { io } from "socket.io-client";
 import DashboardLayout from "../../components/DashboardLayout";
 
 // Shared
@@ -35,6 +36,35 @@ const AdminDashboard = () => {
   const [toast, setToast]         = useState(null); // { msg, type }
 
   const showToast = (msg, type = "success") => setToast({ msg, type });
+
+  // ── Transport Layer: WebSocket / TCP (Unit III: CN Syllabus) ─────────────────
+  useEffect(() => {
+    // VITE_API_URL is "http://localhost:5000/api" — strip "/api" to get the root server
+    const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+    const BACKEND = API_URL.replace(/\/api$/, "");
+
+    // Establish a persistent TCP connection to the Socket.io server
+    const socket = io(BACKEND, { withCredentials: true });
+
+    socket.on("connect", () => {
+      console.log("[Transport Layer] TCP Socket Connected:", socket.id);
+    });
+
+    // Listen for real-time ticket booking events emitted by the server
+    socket.on("new_ticket", (ticket) => {
+      const zoneName = ticket?.zone?.name ?? "a zone";
+      showToast(`🎟️ Live: New ticket booked for ${zoneName}!`, "success");
+      console.log("[WebSocket] new_ticket event received:", ticket);
+    });
+
+    socket.on("disconnect", () => {
+      console.log("[Transport Layer] TCP Socket Disconnected");
+    });
+
+    // Cleanup: close TCP connection when component unmounts
+    return () => socket.disconnect();
+  }, []);
+  // ─────────────────────────────────────────────────────────────────────────────
 
   const ActiveComponent = TAB_COMPONENTS[activeTab];
 

@@ -57,8 +57,22 @@ app.use(cookieParser())
 
 // 🌐 Network Layer: IP Logging Middleware 🌐
 app.use((req, res, next) => {
-  // Logs the logical IPv4 or IPv6 address (demonstrates Unit II concepts)
-  console.log(`[Network Layer] ${req.method} request to ${req.path} from IP: ${req.ip}`);
+  const rawIp = req.ip || req.socket.remoteAddress || 'unknown';
+
+  // Normalize IP address (Unit II: Logical Addressing - IPv4 & IPv6)
+  // ::1            → IPv6 loopback → normalize to 127.0.0.1
+  // ::ffff:1.2.3.4 → IPv4-mapped IPv6 → strip prefix to get pure IPv4
+  let ip = rawIp;
+  if (rawIp === '::1') {
+    ip = '127.0.0.1';          // IPv6 loopback → IPv4 loopback
+  } else if (rawIp.startsWith('::ffff:')) {
+    ip = rawIp.slice(7);       // Strip IPv4-mapped IPv6 prefix
+  }
+
+  // Detect IP version
+  const ipVersion = ip.includes(':') ? 'IPv6' : 'IPv4';
+
+  console.log(`[Network Layer] ${req.method} ${req.path} | ${ipVersion}: ${ip}`);
   next();
 })
 
