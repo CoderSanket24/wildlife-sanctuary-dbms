@@ -1,4 +1,9 @@
 import nodemailer from 'nodemailer';
+import dns from 'dns';
+
+// Force Node.js to prefer IPv4 over IPv6. 
+// Render's free tier sometimes lacks outbound IPv6 routing, causing ENETUNREACH.
+dns.setDefaultResultOrder('ipv4first');
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Unit III: Application Layer — Email (SMTP, MIME)
