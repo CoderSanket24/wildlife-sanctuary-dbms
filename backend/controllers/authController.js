@@ -37,7 +37,9 @@ export const registerVisitor = async (req, res) => {
         })
         
         // Demonstrates Unit III: Application Layer (SMTP) - Send welcome email
-        await sendEmail(
+        // We do NOT use 'await' here. We want this to run asynchronously in the background
+        // so the user doesn't experience high latency or timeouts waiting for the SMTP server.
+        sendEmail(
             email, 
             "Welcome to the Wildlife Sanctuary!", 
             `Hi ${first_name}, thank you for registering with us. We look forward to your visit!`

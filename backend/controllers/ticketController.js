@@ -44,8 +44,9 @@ export const purchaseSafariTicket = async (req, res) => {
         }
 
         // Demonstrates Unit III: Application Layer (SMTP) - Send Booking Confirmation
+        // Run in background (fire-and-forget) to prevent HTTP timeouts
         if (activeTicket && activeTicket.visitor?.email) {
-            await sendEmail(
+            sendEmail(
                 activeTicket.visitor.email,
                 `Ticket Confirmed: ${activeTicket.zone.name} Safari`,
                 `Hi ${activeTicket.visitor.first_name},\n\nYour safari ticket for the ${activeTicket.zone.name} zone has been successfully booked!\n\nTotal Paid: ₹${activeTicket.total_amount}\nBooking Date: ${new Date(activeTicket.booking_date).toLocaleString()}\n\nThank you for supporting the Wildlife Sanctuary!`
