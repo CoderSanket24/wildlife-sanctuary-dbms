@@ -1,4 +1,5 @@
 import prisma from '../config/prisma.js';
+import { sendEmail } from '../utils/mailer.js';
 
 export const purchaseSafariTicket = async (req, res) => {
     try {
@@ -29,18 +30,26 @@ export const purchaseSafariTicket = async (req, res) => {
             },
             include: {
                 zone: {
-                    select: {
-                        name: true,
-                        climate: true
-                    }
+                    select: { name: true, climate: true }
+                },
+                visitor: {
+                    select: { email: true, first_name: true }
                 }
             }
         });
 
         // Demonstrates Unit III: Transport Layer (WebSockets)
-        // Emit event to all connected admin clients
         if (req.app.locals.io) {
             req.app.locals.io.emit('new_ticket', activeTicket);
+        }
+
+        // Demonstrates Unit III: Application Layer (SMTP) - Send Booking Confirmation
+        if (activeTicket && activeTicket.visitor?.email) {
+            await sendEmail(
+                activeTicket.visitor.email,
+                `Ticket Confirmed: ${activeTicket.zone.name} Safari`,
+                `Hi ${activeTicket.visitor.first_name},\n\nYour safari ticket for the ${activeTicket.zone.name} zone has been successfully booked!\n\nTotal Paid: ₹${activeTicket.total_amount}\nBooking Date: ${new Date(activeTicket.booking_date).toLocaleString()}\n\nThank you for supporting the Wildlife Sanctuary!`
+            );
         }
 
         return res.status(200).json({ success: true, message: 'Safari ticket successfully issued. Transaction sealed.', ticket: activeTicket });
