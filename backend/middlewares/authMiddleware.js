@@ -4,13 +4,19 @@ const JWT_SECRET = process.env.JWT_SECRET
 
 export const protect = (req, res, next) => {
     try {
-        const token = req.cookies.session_token
+        let token = req.cookies?.session_token
+
+        // Support Bearer token header for API clients, scripts, and mobile
+        if (!token && req.headers.authorization && req.headers.authorization.startsWith('Bearer ')) {
+            token = req.headers.authorization.split(' ')[1]
+        }
 
         if (!token) {
             return res.status(401).json({ success: false, error: 'Access Denied: Session token missing. Please log in to gain access.' })
         }
 
-        const decoded = jwt.verify(token, JWT_SECRET)
+        // clockTolerance: 300 prevents false expirations from NTP clock drift between client and cloud hosts
+        const decoded = jwt.verify(token, JWT_SECRET, { clockTolerance: 300 })
         req.user = decoded
         next()
     } catch (error) {
