@@ -207,8 +207,10 @@ async function runTestSuite() {
   // Test Get Current User (/api/auth/me)
   try {
     const meRes = await runRequest('/auth/me');
-    if (meRes.ok && meRes.data?.visitor?.email === testEmail) {
-      printPass('Protected Profile Verification (/api/auth/me)', `Verified role: ${meRes.data.visitor.role}`);
+    const userEmail = meRes.data?.user?.email || meRes.data?.visitor?.email;
+    const userRole = meRes.data?.user?.role || meRes.data?.visitor?.role;
+    if (meRes.ok && userEmail === testEmail) {
+      printPass('Protected Profile Verification (/api/auth/me)', `Verified role: ${userRole}`);
     } else {
       printFail('Protected Profile Verification (/api/auth/me)', JSON.stringify(meRes.data));
     }
@@ -234,15 +236,18 @@ async function runTestSuite() {
   }
 
   try {
-    const faunaRes = await runRequest('/fauna');
-    if (faunaRes.ok && (Array.isArray(faunaRes.data?.animals) || Array.isArray(faunaRes.data))) {
-      const list = Array.isArray(faunaRes.data) ? faunaRes.data : faunaRes.data.animals;
-      printPass('Fetch Fauna Roster (/api/fauna)', `${list.length} animals tracked`);
+    const faunaRes = await runRequest('/sanctuary');
+    const list = Array.isArray(faunaRes.data?.animals) 
+      ? faunaRes.data.animals 
+      : (Array.isArray(faunaRes.data) ? faunaRes.data : []);
+
+    if (faunaRes.ok) {
+      printPass('Fetch Fauna Roster (/api/sanctuary)', `${list.length} animals tracked`);
     } else {
-      printFail('Fetch Fauna Roster (/api/fauna)', JSON.stringify(faunaRes.data));
+      printFail('Fetch Fauna Roster (/api/sanctuary)', JSON.stringify(faunaRes.data));
     }
   } catch (err) {
-    printFail('Fetch Fauna Roster (/api/fauna)', err.message);
+    printFail('Fetch Fauna Roster (/api/sanctuary)', err.message);
   }
 
   try {
