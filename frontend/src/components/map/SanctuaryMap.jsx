@@ -115,9 +115,11 @@ const createCameraTrapMarkerHtml = (trap) => {
 export default function SanctuaryMap({ telemetry }) {
   const mapContainerRef = useRef(null);
   const mapInstanceRef = useRef(null);
+  const tileLayerRef = useRef(null);
   const layersRef = useRef({ zones: null, sightings: null, traps: null });
   const markersMapRef = useRef(new Map());
 
+  const [basemap, setBasemap] = useState("satellite"); // "satellite" | "streets"
   const [selectedItem, setSelectedItem] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [filterLayer, setFilterLayer] = useState("ALL"); // ALL | ANIMALS | TRAPS | ZONES
@@ -127,12 +129,29 @@ export default function SanctuaryMap({ telemetry }) {
   const { zones = [], sightings = [], camera_traps = [], center = [11.6681, 76.62] } =
     telemetry || {};
 
+  // Basemap Tile Providers (100% Free, NO API Key Required)
+  const TILE_CONFIGS = {
+    satellite: {
+      url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+      options: {
+        attribution: '&copy; <a href="https://www.esri.com/">Esri</a>, NASA, USGS',
+        maxZoom: 18,
+      },
+    },
+    streets: {
+      url: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+      options: {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+        maxZoom: 19,
+      },
+    },
+  };
+
   // Initialize Map Instance
   useEffect(() => {
     if (!mapContainerRef.current) return;
     if (mapInstanceRef.current) return;
 
-    // Dark styled basemap (CartoDB Dark Matter)
     const map = L.map(mapContainerRef.current, {
       center: center,
       zoom: 13,
@@ -143,15 +162,12 @@ export default function SanctuaryMap({ telemetry }) {
 
     L.control.zoom({ position: "bottomright" }).addTo(map);
 
-    // Dark Basemap Tiles
-    L.tileLayer(
-      "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",
-      {
-        attribution: '&copy; <a href="https://carto.com/">CARTO</a> &copy; OpenStreetMap',
-        subdomains: "abcd",
-        maxZoom: 19,
-      }
+    // Initial Satellite Tile Layer
+    const initialTile = L.tileLayer(
+      TILE_CONFIGS.satellite.url,
+      TILE_CONFIGS.satellite.options
     ).addTo(map);
+    tileLayerRef.current = initialTile;
 
     // Create Layer Groups
     const zonesGroup = L.featureGroup().addTo(map);
@@ -166,11 +182,34 @@ export default function SanctuaryMap({ telemetry }) {
 
     mapInstanceRef.current = map;
 
+    // Trigger resize calculation to ensure all tiles render seamlessly
+    setTimeout(() => {
+      map.invalidateSize();
+    }, 200);
+
     return () => {
       map.remove();
       mapInstanceRef.current = null;
     };
   }, []);
+
+  // Handle Basemap Layer Switching (Satellite vs Street/Topo)
+  useEffect(() => {
+    const map = mapInstanceRef.current;
+    if (!map) return;
+
+    if (tileLayerRef.current) {
+      map.removeLayer(tileLayerRef.current);
+    }
+
+    const cfg = TILE_CONFIGS[basemap] || TILE_CONFIGS.satellite;
+    tileLayerRef.current = L.tileLayer(cfg.url, cfg.options).addTo(map);
+    
+    // Ensure vector features stay on top of basemap
+    if (layersRef.current.zones) layersRef.current.zones.bringToFront();
+    if (layersRef.current.traps) layersRef.current.traps.bringToFront();
+    if (layersRef.current.sightings) layersRef.current.sightings.bringToFront();
+  }, [basemap]);
 
   // Update Layers when Telemetry or Filters change
   useEffect(() => {
@@ -468,9 +507,36 @@ export default function SanctuaryMap({ telemetry }) {
       <div className="relative flex-1">
         <div ref={mapContainerRef} className="h-full w-full" />
 
-        {/* Floating Reset Center Button */}
-        <div className="absolute top-4 right-4 z-10 flex flex-col gap-2">
+        {/* Floating Controls: Basemap Toggle & Reset Center */}
+        <div className="absolute top-4 right-4 z-10 flex items-center gap-2">
+          {/* Basemap Switcher */}
+          <div className="flex rounded-lg border border-white/10 bg-[#08120a]/90 p-0.5 backdrop-blur-md shadow-xl">
+            <button
+              type="button"
+              onClick={() => setBasemap("satellite")}
+              className={`rounded px-2.5 py-1 text-[9px] font-bold uppercase transition ${
+                basemap === "satellite"
+                  ? "bg-lime-400 text-black shadow"
+                  : "text-white/60 hover:text-white"
+              }`}
+            >
+              Satellite
+            </button>
+            <button
+              type="button"
+              onClick={() => setBasemap("streets")}
+              className={`rounded px-2.5 py-1 text-[9px] font-bold uppercase transition ${
+                basemap === "streets"
+                  ? "bg-lime-400 text-black shadow"
+                  : "text-white/60 hover:text-white"
+              }`}
+            >
+              Topo/Street
+            </button>
+          </div>
+
           <button
+            type="button"
             onClick={() => {
               if (mapInstanceRef.current) {
                 mapInstanceRef.current.flyTo(center, 13, { duration: 1 });
@@ -479,7 +545,7 @@ export default function SanctuaryMap({ telemetry }) {
             }}
             className="flex items-center gap-1.5 rounded-lg border border-white/10 bg-[#08120a]/90 px-3 py-2 text-[10px] font-bold uppercase tracking-wider text-white shadow-xl backdrop-blur-md transition hover:border-lime-400 hover:text-lime-400"
           >
-            <Crosshair size={12} /> Sanctuary Center
+            <Crosshair size={12} /> Center
           </button>
         </div>
 

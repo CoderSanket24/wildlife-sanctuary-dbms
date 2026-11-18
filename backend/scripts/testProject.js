@@ -289,9 +289,12 @@ async function runTestSuite() {
   // Verify Cache Engine Metrics
   try {
     const metricsRes = await runRequest('/cache/metrics');
-    if (metricsRes.ok && metricsRes.data?.metrics) {
-      const m = metricsRes.data.metrics;
-      printPass('Cache Engine Telemetry (/api/cache/metrics)', `Size: ${m.size}, Hits: ${m.hits}, HitRate: ${m.hitRate}`);
+    const m = metricsRes.data?.cache || metricsRes.data?.metrics;
+    if (metricsRes.ok && m) {
+      printPass(
+        'Cache Engine Telemetry (/api/cache/metrics)', 
+        `Active Keys: ${m.size ?? m.active_keys}, Hits: ${m.hits}, Misses: ${m.misses}, HitRate: ${m.hitRate ?? m.hit_ratio}`
+      );
     } else {
       printFail('Cache Engine Telemetry (/api/cache/metrics)', JSON.stringify(metricsRes.data));
     }

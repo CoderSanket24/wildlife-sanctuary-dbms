@@ -127,9 +127,11 @@ app.get('/api/network-health', async (req, res) => {
 
 // 🚀 High-Speed Cache Engine Metrics (Performance Monitoring) 🚀
 app.get('/api/cache/metrics', (req, res) => {
+  const data = cacheEngine.getMetrics();
   res.status(200).json({
     success: true,
-    cache: cacheEngine.getMetrics()
+    cache: data,
+    metrics: data
   });
 })
 
