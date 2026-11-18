@@ -13,6 +13,7 @@ model Zone {
   climate            ClimateType @default(TROPICAL)
   camera_traps_count Int         @default(0)
   ticket_price       Decimal     @db.Decimal(10, 2)
+  max_daily_capacity Int         @default(50)
   enclosures         Enclosure[]
   tickets            Ticket[]
 

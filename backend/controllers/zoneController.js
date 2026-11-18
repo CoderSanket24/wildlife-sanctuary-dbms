@@ -1,4 +1,5 @@
 import prisma from "../config/prisma.js";
+import { invalidateCache } from "../utils/cache.js";
 
 export const addNewZone = async (req, res) => {
     try {
@@ -16,6 +17,8 @@ export const addNewZone = async (req, res) => {
                 ticket_price: parseFloat(ticket_price)
             }
         });
+
+        invalidateCache(['zones', 'stats']);
 
         return res.status(201).json({
             success: true,

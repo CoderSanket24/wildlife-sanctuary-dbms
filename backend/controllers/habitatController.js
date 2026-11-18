@@ -1,5 +1,6 @@
 import prisma from '../config/prisma.js';
 import { Prisma } from '@prisma/client';
+import { invalidateCache } from '../utils/cache.js';
 
 export const createEnclosure = async (req, res) => {
   try {
@@ -12,6 +13,8 @@ export const createEnclosure = async (req, res) => {
         max_capacity
       }
     });
+
+    invalidateCache(['sanctuary', 'stats', 'zones']);
 
     return res.status(201).json({
       success: true,
@@ -41,6 +44,8 @@ export const registerAnimal = async (req, res) => {
         health_status: health_status || 'HEALTHY'
       }
     });
+
+    invalidateCache(['sanctuary', 'stats', 'zones']);
 
     return res.status(201).json({
       success: true,

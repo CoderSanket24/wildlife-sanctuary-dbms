@@ -1,8 +1,9 @@
 -- ============================================================
---  TICKET CHECK-IN & LIFECYCLE SCHEMA EXTENSIONS
+--  TICKET CHECK-IN, CAPACITY & CONCURRENCY EXTENSIONS
 -- ============================================================
 ALTER TABLE tickets ADD COLUMN IF NOT EXISTS status VARCHAR(20) DEFAULT 'CONFIRMED';
 ALTER TABLE tickets ADD COLUMN IF NOT EXISTS checked_in_at TIMESTAMPTZ;
+ALTER TABLE zones ADD COLUMN IF NOT EXISTS max_daily_capacity INT DEFAULT 50;
 
 CREATE OR REPLACE FUNCTION fn_calculate_ticket_costs()
 RETURNS TRIGGER AS $$
@@ -179,28 +180,50 @@ CREATE OR REPLACE FUNCTION fn_book_safari_ticket(
 )
 RETURNS BOOLEAN AS $$
 DECLARE
-    v_zone_exists INT;
     v_visitor_exists INT;
+    v_max_capacity INT;
+    v_current_bookings INT;
 BEGIN
+    -- 1. Validate Visitor Exists
     SELECT COUNT(*) INTO v_visitor_exists FROM visitors WHERE visitor_id = p_visitor_id;
-    SELECT COUNT(*) INTO v_zone_exists FROM zones WHERE zone_id = p_zone_id;
-
     IF v_visitor_exists = 0 THEN
         RAISE EXCEPTION 'Transaction Aborted: Invalid Visitor credentials reference.';
     END IF;
 
-    IF v_zone_exists = 0 THEN
+    -- 2. PESSIMISTIC CONCURRENCY ROW LOCK (SELECT ... FOR UPDATE)
+    -- Exclusively locks the specific Zone row for the duration of this transaction.
+    -- Any concurrent transaction attempting to book the same zone MUST queue and wait,
+    -- eliminating phantom reads, race conditions, and overselling tickets.
+    SELECT COALESCE(max_daily_capacity, 50) INTO v_max_capacity
+    FROM zones
+    WHERE zone_id = p_zone_id
+    FOR UPDATE;
+
+    IF NOT FOUND THEN
         RAISE EXCEPTION 'Transaction Aborted: Target Safari Zone does not exist.';
     END IF;
 
-    INSERT INTO tickets (visitor_id, zone_id, base_cost, gst_amount, total_amount)
-    VALUES (p_visitor_id, p_zone_id, 0.00, 0.00, 0.00);
+    -- 3. Calculate today's confirmed bookings for this specific zone
+    SELECT COUNT(*) INTO v_current_bookings
+    FROM tickets
+    WHERE zone_id = p_zone_id
+      AND booking_date::DATE = CURRENT_DATE;
+
+    -- 4. Check if zone has reached maximum capacity threshold
+    IF v_current_bookings >= v_max_capacity THEN
+        RAISE EXCEPTION 'Capacity Limit Reached: Safari Zone % has reached its maximum daily visitor capacity (%/%).',
+            p_zone_id, v_current_bookings, v_max_capacity;
+    END IF;
+
+    -- 5. Insert ticket ledger row (trigger computes base_cost and GST)
+    INSERT INTO tickets (visitor_id, zone_id, base_cost, gst_amount, total_amount, status)
+    VALUES (p_visitor_id, p_zone_id, 0.00, 0.00, 0.00, 'CONFIRMED');
 
     RETURN TRUE;
 
 EXCEPTION
     WHEN OTHERS THEN
-        RAISE EXCEPTION 'Transaction Aborted: Internal database error. Error: %', SQLERRM;
+        RAISE EXCEPTION '%', SQLERRM;
 END;
 $$ LANGUAGE plpgsql;
 

@@ -1,6 +1,7 @@
 import prisma from '../config/prisma.js';
 import { sendEmail } from '../utils/mailer.js';
 import { generateTicketPdf } from '../utils/ticketPdf.js';
+import { invalidateCache } from '../utils/cache.js';
 
 export const purchaseSafariTicket = async (req, res) => {
     try {
@@ -73,9 +74,18 @@ export const purchaseSafariTicket = async (req, res) => {
             })();
         }
 
+        // Invalidate cached zone and dashboard statistics
+        invalidateCache(['stats', 'zones']);
+
         return res.status(200).json({ success: true, message: 'Safari ticket successfully issued. Transaction sealed.', ticket: activeTicket });
     } catch (error) {
         console.error('🔥 Transactional Booking Pipeline Aborted:', error.message);
+        if (error.message.includes('Capacity Limit Reached')) {
+            return res.status(409).json({
+                success: false,
+                error: error.message.split('ERROR:')[1]?.trim() || error.message
+            });
+        }
         if (error.message.includes('Transaction Aborted')) {
             return res.status(400).json({
                 success: false,

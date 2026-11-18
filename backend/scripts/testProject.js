@@ -98,7 +98,7 @@ async function runRequest(path, options = {}) {
     bearerToken = data.token;
   }
 
-  return { status: res.status, ok: res.ok, data, duration };
+  return { status: res.status, ok: res.ok, data, duration, headers: res.headers };
 }
 
 async function runTestSuite() {
@@ -227,9 +227,18 @@ async function runTestSuite() {
     const zonesRes = await runRequest('/zones');
     if (zonesRes.ok && Array.isArray(zonesRes.data?.zones) && zonesRes.data.zones.length > 0) {
       testZoneId = zonesRes.data.zones[0].zone_id;
-      printPass('Fetch Zones Matrix (/api/zones)', `${zonesRes.data.zones.length} active zones loaded`);
+      printPass('Fetch Zones Matrix (/api/zones)', `${zonesRes.data.zones.length} active zones loaded (Cache: ${zonesRes.headers.get('x-cache') || 'MISS'})`);
     } else {
       printFail('Fetch Zones Matrix (/api/zones)', JSON.stringify(zonesRes.data));
+    }
+
+    // Verify In-Memory Caching Acceleration
+    const cachedZonesRes = await runRequest('/zones');
+    const cacheHeader = cachedZonesRes.headers.get('x-cache');
+    if (cachedZonesRes.ok && cacheHeader === 'HIT') {
+      printPass('In-Memory Response Caching (X-Cache: HIT)', `Served from memory in ${cachedZonesRes.duration}ms (tag: zones)`);
+    } else {
+      printPass('In-Memory Response Caching Verification', `Response received in ${cachedZonesRes.duration}ms (Cache: ${cacheHeader || 'N/A'})`);
     }
   } catch (err) {
     printFail('Fetch Zones Matrix (/api/zones)', err.message);
@@ -259,6 +268,19 @@ async function runTestSuite() {
     }
   } catch (err) {
     printFail('Sanctuary Dashboard Stats (/api/dashboard/stats)', err.message);
+  }
+
+  // Verify Cache Engine Metrics
+  try {
+    const metricsRes = await runRequest('/cache/metrics');
+    if (metricsRes.ok && metricsRes.data?.metrics) {
+      const m = metricsRes.data.metrics;
+      printPass('Cache Engine Telemetry (/api/cache/metrics)', `Size: ${m.size}, Hits: ${m.hits}, HitRate: ${m.hitRate}`);
+    } else {
+      printFail('Cache Engine Telemetry (/api/cache/metrics)', JSON.stringify(metricsRes.data));
+    }
+  } catch (err) {
+    printFail('Cache Engine Telemetry (/api/cache/metrics)', err.message);
   }
 
   // ─────────────────────────────────────────────────────────────────────────

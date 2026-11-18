@@ -18,6 +18,7 @@ import dashboardRoutes from './routes/dashboardRoutes.js'
 import prisma from './config/prisma.js'
 import ping from 'ping'
 import { Server } from 'socket.io'
+import { cacheEngine } from './utils/cache.js'
 
 dotenv.config()
 patchBigInt()
@@ -122,6 +123,14 @@ app.get('/api/network-health', async (req, res) => {
   } catch (error) {
     res.status(500).json({ success: false, error: 'ICMP Ping failed' });
   }
+})
+
+// 🚀 High-Speed Cache Engine Metrics (Performance Monitoring) 🚀
+app.get('/api/cache/metrics', (req, res) => {
+  res.status(200).json({
+    success: true,
+    cache: cacheEngine.getMetrics()
+  });
 })
 
 // ── Routes ────────────────────────────────────────────────────────────────────
