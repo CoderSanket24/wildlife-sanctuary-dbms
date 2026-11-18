@@ -78,3 +78,5 @@ export const sendEmail = async (to, subject, text, attachments = []) => {
     console.error('[SMTP Error]', error.message);
   }
 };
+
+export default sendEmail;

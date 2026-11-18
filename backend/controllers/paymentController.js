@@ -2,7 +2,7 @@ import Razorpay from 'razorpay';
 import crypto from 'crypto';
 import prisma from '../config/prisma.js';
 import { generateTicketPdf } from '../utils/ticketPdf.js';
-import sendEmail from '../utils/mailer.js';
+import { sendEmail } from '../utils/mailer.js';
 import { invalidateCache } from '../utils/cache.js';
 
 /**
