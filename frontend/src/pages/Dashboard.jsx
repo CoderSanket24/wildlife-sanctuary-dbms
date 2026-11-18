@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { MapPin, PawPrint, Ticket, HeartPulse, Leaf, LayoutGrid, AlertTriangle, Clock, IndianRupee } from "lucide-react";
+import { MapPin, PawPrint, Ticket, HeartPulse, Leaf, LayoutGrid, AlertTriangle, Clock, IndianRupee, Compass } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import DashboardLayout from "../components/DashboardLayout";
 import DashboardStatCard from "../components/dashboard/DashboardStatCard";
@@ -33,10 +33,10 @@ const PARTICLES = [
 ];
 
 const QUICK_ACTIONS = [
-  { icon: MapPin,      label: "Explore Map",     to: "/dashboard/zones"   },
+  { icon: Compass,     label: "Sanctuary Map",   to: "/dashboard/map"     },
+  { icon: MapPin,      label: "Explore Zones",   to: "/dashboard/zones"   },
   { icon: PawPrint,    label: "View Animals",    to: "/dashboard/animals" },
   { icon: Ticket,      label: "Book Safari",     to: "/dashboard/tickets" },
-  { icon: HeartPulse,  label: "Health Alerts",   to: "/dashboard/animals" },
 ];
 
 /* ════════════════════════════════════════
@@ -108,7 +108,10 @@ const Dashboard = () => {
             Your gateway to the sanctuary — explore zones, track wildlife, and manage your visits all in one place.
           </p>
           <div className="mt-6 flex flex-wrap gap-3">
-            <Link to="/dashboard/zones"   className="flex items-center gap-2 border border-lime-400/60 px-5 py-2.5 text-[10px] font-bold uppercase tracking-[0.25em] text-white transition-all hover:bg-lime-400 hover:text-black" style={{ borderRadius: "6px" }}>
+            <Link to="/dashboard/map" className="flex items-center gap-2 bg-lime-400 px-5 py-2.5 text-[10px] font-black uppercase tracking-[0.25em] text-black transition-all hover:bg-lime-300 shadow-[0_0_24px_rgba(163,230,53,0.35)]" style={{ borderRadius: "6px" }}>
+              <Compass size={12} /> Live Sanctuary Map
+            </Link>
+            <Link to="/dashboard/zones"   className="flex items-center gap-2 border border-white/20 px-5 py-2.5 text-[10px] font-bold uppercase tracking-[0.25em] text-white transition-all hover:border-lime-400 hover:text-lime-300" style={{ borderRadius: "6px" }}>
               <MapPin size={12} /> Explore Zones
             </Link>
             <Link to="/dashboard/animals" className="flex items-center gap-2 border border-white/12 px-5 py-2.5 text-[10px] font-bold uppercase tracking-[0.25em] text-white/45 transition-all hover:border-white/30 hover:text-white/75" style={{ borderRadius: "6px" }}>

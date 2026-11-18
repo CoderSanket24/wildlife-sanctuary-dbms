@@ -14,6 +14,7 @@ import Animals from './pages/Animals'
 import AnimalDetail from './pages/AnimalDetail'
 import Tickets   from './pages/Tickets'
 import Feedback  from './pages/Feedback'
+import SanctuaryMapPage from './pages/SanctuaryMapPage'
 import AdminDashboard from './pages/admin/AdminDashboard'
 import ProtectedRoute from './components/ProtectedRoute'
 import RenderWakeupModal from './components/RenderWakeupModal'
@@ -34,6 +35,7 @@ const App = () => {
         {/* ── Protected dashboard routes ── */}
         <Route element={<ProtectedRoute />}>
           <Route path='/dashboard'              element={<Dashboard    />} />
+          <Route path='/dashboard/map'          element={<SanctuaryMapPage />} />
           <Route path='/dashboard/profile'      element={<Profile      />} />
           <Route path='/dashboard/zones'        element={<Zones        />} />
           <Route path='/dashboard/zones/:id'    element={<ZoneDetail   />} />

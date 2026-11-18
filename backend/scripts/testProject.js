@@ -270,6 +270,22 @@ async function runTestSuite() {
     printFail('Sanctuary Dashboard Stats (/api/dashboard/stats)', err.message);
   }
 
+  // Phase 3: Geospatial GIS Telemetry & Map Radar Probe
+  try {
+    const telemetryRes = await runRequest('/fauna/telemetry');
+    if (telemetryRes.ok && telemetryRes.data?.telemetry) {
+      const t = telemetryRes.data.telemetry;
+      printPass(
+        'Geospatial Telemetry Engine (/api/fauna/telemetry)',
+        `${t.total_zones} zones, ${t.total_sightings} GPS sightings, ${t.total_camera_traps} camera traps`
+      );
+    } else {
+      printFail('Geospatial Telemetry Engine (/api/fauna/telemetry)', JSON.stringify(telemetryRes.data));
+    }
+  } catch (err) {
+    printFail('Geospatial Telemetry Engine (/api/fauna/telemetry)', err.message);
+  }
+
   // Verify Cache Engine Metrics
   try {
     const metricsRes = await runRequest('/cache/metrics');

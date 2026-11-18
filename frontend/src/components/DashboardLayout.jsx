@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard,
+  Compass,
   MapPin,
   PawPrint,
   User,
@@ -17,6 +18,7 @@ import logo from "../assets/logo.png";
 
 const BASE_NAV = [
   { to: "/dashboard",          icon: LayoutDashboard, label: "Overview"   },
+  { to: "/dashboard/map",      icon: Compass,         label: "Live Map"   },
   { to: "/dashboard/zones",    icon: MapPin,           label: "Zones"     },
   { to: "/dashboard/animals",  icon: PawPrint,         label: "Animals"   },
   { to: "/dashboard/tickets",  icon: Ticket,           label: "My Tickets"},

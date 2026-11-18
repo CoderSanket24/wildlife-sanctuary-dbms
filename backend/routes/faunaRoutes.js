@@ -1,10 +1,15 @@
-import {Router} from 'express'
-import {protect , restrictTo } from '../middlewares/authMiddleware.js'
-import { validate, surveyLogSchema } from '../middlewares/validate.js'
-import { logFaunaSurvey } from '../controllers/surveyController.js'
+import { Router } from 'express';
+import { protect, restrictTo } from '../middlewares/authMiddleware.js';
+import { validate, surveyLogSchema } from '../middlewares/validate.js';
+import { logFaunaSurvey, getSanctuaryTelemetry } from '../controllers/surveyController.js';
+import { cacheResponse } from '../utils/cache.js';
 
-const router = Router()
+const router = Router();
 
-router.post('/surveys', protect, restrictTo('STAFF', 'ADMIN'), validate(surveyLogSchema), logFaunaSurvey)
+// Public / Visitor Geospatial Telemetry (cached for 60s)
+router.get('/telemetry', cacheResponse(60, 'telemetry'), getSanctuaryTelemetry);
 
-export default router
+// Staff / Admin Field Survey Logging
+router.post('/surveys', protect, restrictTo('STAFF', 'ADMIN'), validate(surveyLogSchema), logFaunaSurvey);
+
+export default router;
