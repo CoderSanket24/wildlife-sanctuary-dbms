@@ -35,9 +35,9 @@ export default function SanctuaryMapPage() {
 
   return (
     <DashboardLayout>
-      <div className="mx-auto max-w-screen-2xl px-5 py-6 md:px-10">
+      <div className="relative z-10 mx-auto max-w-screen-2xl px-5 py-6 md:px-10">
         {/* Top Header */}
-        <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div className="relative z-20 mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
             <div className="flex items-center gap-2">
               <span className="flex items-center gap-1.5 rounded-full border border-lime-400/30 bg-lime-400/10 px-3 py-0.5 text-[10px] font-black uppercase tracking-[0.25em] text-lime-400">
@@ -69,7 +69,7 @@ export default function SanctuaryMapPage() {
 
         {/* Quick Metrics Bar */}
         {telemetry && (
-          <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <div className="relative z-20 mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
             <div className="rounded-xl border border-white/10 bg-[#09150b]/80 p-3.5 backdrop-blur-md">
               <span className="text-[10px] font-black uppercase tracking-wider text-white/40 block">
                 Tracked Habitats

@@ -347,9 +347,9 @@ export default function SanctuaryMap({ telemetry }) {
   });
 
   return (
-    <div className="relative flex h-[82vh] w-full overflow-hidden rounded-2xl border border-white/10 bg-[#060e07] shadow-2xl">
+    <div className="relative flex h-[75vh] min-h-[550px] w-full overflow-hidden rounded-2xl border border-white/10 bg-[#060e07] shadow-2xl">
       {/* ── Left Telemetry & Filter Sidebar ── */}
-      <div className="z-10 flex w-84 shrink-0 flex-col border-r border-white/10 bg-[#08120a]/95 backdrop-blur-xl">
+      <div className="relative z-30 flex w-84 shrink-0 flex-col border-r border-white/10 bg-[#08120a]/98 backdrop-blur-xl">
         {/* Header */}
         <div className="border-b border-white/10 p-4">
           <div className="flex items-center justify-between">
@@ -504,13 +504,13 @@ export default function SanctuaryMap({ telemetry }) {
       </div>
 
       {/* ── Main Map Container ── */}
-      <div className="relative flex-1">
-        <div ref={mapContainerRef} className="h-full w-full" />
+      <div className="relative flex-1 h-full min-w-0 overflow-hidden">
+        <div ref={mapContainerRef} className="relative z-0 h-full w-full" />
 
         {/* Floating Controls: Basemap Toggle & Reset Center */}
-        <div className="absolute top-4 right-4 z-10 flex items-center gap-2">
+        <div className="absolute top-4 right-4 z-30 flex items-center gap-2 pointer-events-auto">
           {/* Basemap Switcher */}
-          <div className="flex rounded-lg border border-white/10 bg-[#08120a]/90 p-0.5 backdrop-blur-md shadow-xl">
+          <div className="flex rounded-lg border border-white/10 bg-[#08120a]/95 p-0.5 backdrop-blur-md shadow-xl">
             <button
               type="button"
               onClick={() => setBasemap("satellite")}
@@ -543,14 +543,14 @@ export default function SanctuaryMap({ telemetry }) {
                 setSelectedItem(null);
               }
             }}
-            className="flex items-center gap-1.5 rounded-lg border border-white/10 bg-[#08120a]/90 px-3 py-2 text-[10px] font-bold uppercase tracking-wider text-white shadow-xl backdrop-blur-md transition hover:border-lime-400 hover:text-lime-400"
+            className="flex items-center gap-1.5 rounded-lg border border-white/10 bg-[#08120a]/95 px-3 py-2 text-[10px] font-bold uppercase tracking-wider text-white shadow-xl backdrop-blur-md transition hover:border-lime-400 hover:text-lime-400"
           >
             <Crosshair size={12} /> Center
           </button>
         </div>
 
         {/* Floating Habitat Shortcuts Bar */}
-        <div className="absolute bottom-4 left-4 z-10 hidden max-w-[calc(100%-250px)] flex-wrap gap-1.5 rounded-xl border border-white/10 bg-[#08120a]/85 p-2 backdrop-blur-md lg:flex">
+        <div className="absolute bottom-4 left-4 z-30 hidden max-w-[calc(100%-250px)] flex-wrap gap-1.5 rounded-xl border border-white/10 bg-[#08120a]/90 p-2 backdrop-blur-md lg:flex pointer-events-auto">
           {zones.map((z) => (
             <button
               key={z.zone_id}
@@ -568,7 +568,7 @@ export default function SanctuaryMap({ telemetry }) {
 
         {/* Detail Inspector Drawer / Modal */}
         {selectedItem && (
-          <div className="absolute top-4 left-4 z-20 w-80 rounded-xl border border-white/15 bg-[#09150b]/95 p-5 shadow-2xl backdrop-blur-xl animate-in fade-in slide-in-from-left duration-200">
+          <div className="absolute top-4 left-4 z-40 w-80 max-w-[calc(100%-2rem)] rounded-xl border border-white/15 bg-[#09150b]/98 p-5 shadow-2xl backdrop-blur-2xl animate-in fade-in slide-in-from-left duration-200 pointer-events-auto">
             {selectedItem.type === "ANIMAL" && (
               <div>
                 <div className="flex items-start justify-between">
