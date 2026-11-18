@@ -114,7 +114,8 @@ const BookTicketModal = ({ onClose, onBooked, preselectedZoneId }) => {
           order_id: orderData.order_id,
           prefill: {
             name: `${user?.first_name || "Visitor"} ${user?.last_name || ""}`,
-            email: user?.email || "",
+            email: user?.email || "visitor@example.com",
+            contact: "9876543210",
           },
           theme: {
             color: "#65a30d",
