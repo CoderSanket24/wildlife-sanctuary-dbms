@@ -355,14 +355,18 @@ async function runTestSuite() {
   try {
     const bookRes = await runRequest('/tickets/book', {
       method: 'POST',
-      body: JSON.stringify({ zone_id: Number(testZoneId) })
+      body: JSON.stringify({
+        zone_id: Number(testZoneId),
+        payment_method: 'UPI',
+        transaction_id: 'TXN-TEST-999'
+      })
     });
 
     if (bookRes.ok && bookRes.data?.success) {
       bookedTicketId = bookRes.data.ticket?.ticket_id;
       printPass(
-        'Transactional Ticket Purchase (/api/tickets/book)', 
-        `Ticket #${bookedTicketId} booked in ${bookRes.duration}ms (Total: ₹${bookRes.data.ticket?.total_amount})`
+        'Transactional Ticket Purchase & Commercial Checkout (/api/tickets/book)', 
+        `Ticket #${bookedTicketId} booked in ${bookRes.duration}ms (Txn: ${bookRes.data.ticket?.transaction_id}, Method: ${bookRes.data.ticket?.payment_method})`
       );
     } else {
       printFail('Transactional Ticket Purchase (/api/tickets/book)', JSON.stringify(bookRes.data));

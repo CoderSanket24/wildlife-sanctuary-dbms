@@ -77,7 +77,25 @@ export const purchaseSafariTicket = async (req, res) => {
         // Invalidate cached zone and dashboard statistics
         invalidateCache(['stats', 'zones']);
 
-        return res.status(200).json({ success: true, message: 'Safari ticket successfully issued. Transaction sealed.', ticket: activeTicket });
+        const transaction_id = req.body.transaction_id || `TXN-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
+        const payment_method = req.body.payment_method || 'SIMULATED_GATEWAY';
+
+        const enrichedTicket = {
+            ...activeTicket,
+            ticket_id: String(activeTicket.ticket_id),
+            base_cost: parseFloat(activeTicket.base_cost),
+            gst_amount: parseFloat(activeTicket.gst_amount),
+            total_amount: parseFloat(activeTicket.total_amount),
+            transaction_id,
+            payment_method,
+            paid_at: new Date().toISOString()
+        };
+
+        return res.status(200).json({
+            success: true,
+            message: 'Safari ticket successfully issued. Transaction sealed.',
+            ticket: enrichedTicket
+        });
     } catch (error) {
         console.error('🔥 Transactional Booking Pipeline Aborted:', error.message);
         if (error.message.includes('Capacity Limit Reached')) {

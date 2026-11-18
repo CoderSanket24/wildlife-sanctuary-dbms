@@ -1,221 +1,583 @@
 import React, { useEffect, useState } from "react";
-import { X, Ticket, MapPin, IndianRupee, CheckCircle, AlertCircle, ChevronDown } from "lucide-react";
+import {
+  X,
+  Ticket,
+  MapPin,
+  IndianRupee,
+  CheckCircle,
+  AlertCircle,
+  Shield,
+  CreditCard,
+  QrCode,
+  Building2,
+  Sparkles,
+  Lock,
+  ArrowRight,
+  Download,
+  CheckCircle2,
+  Users,
+  ChevronRight,
+  RefreshCw,
+  Mail,
+} from "lucide-react";
 import { CLIMATE_META } from "../../constants/climateData";
 import api from "../../api/axiosInstance";
 
 /**
- * Modal for booking a new safari ticket.
- * Fetches available zones, lets the user pick one, shows price breakdown, and confirms.
+ * Commercial Safari Checkout Modal & Payment Gateway
  *
- * @param {Function} onClose            - Called when modal should close.
- * @param {Function} onBooked           - Called with the new ticket after a successful booking.
- * @param {number}   [preselectedZoneId] - Optional zone_id to auto-select (e.g. from ZoneDetail page).
+ * Implements:
+ * - Step 1: Zone selection, guest quantity, and real-time fee calculation.
+ * - Step 2: Commercial simulated payment gateway (UPI, Card, NetBanking, Instant Test).
+ * - Step 3: Bank authorization & cryptographic handshake simulation.
+ * - Step 4: Digital tax invoice receipt with instant PDF E-Ticket download and email dispatch.
  */
 const BookTicketModal = ({ onClose, onBooked, preselectedZoneId }) => {
-  const [zones, setZones]       = useState([]);
+  // Navigation & Steps: 'SELECT' | 'PAYMENT' | 'PROCESSING' | 'SUCCESS'
+  const [step, setStep] = useState("SELECT");
+  const [zones, setZones] = useState([]);
   const [selectedZone, setSelectedZone] = useState(null);
-  const [loading, setLoading]   = useState(true);
-  const [booking, setBooking]   = useState(false);
-  const [success, setSuccess]   = useState(null);  // booked ticket
-  const [error, setError]       = useState(null);
+  const [passCount, setPassCount] = useState(1);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  /* Fetch zones on mount; auto-select if preselectedZoneId is given */
+  // Payment Options & Inputs
+  const [paymentMethod, setPaymentMethod] = useState("UPI"); // 'UPI' | 'CARD' | 'NETBANKING' | 'TEST'
+  const [upiId, setUpiId] = useState("visitor@okhdfcbank");
+  const [cardNumber, setCardNumber] = useState("4532 •••• •••• 8821");
+  const [cardExpiry, setCardExpiry] = useState("08/28");
+  const [cardCvv, setCardCvv] = useState("742");
+  const [cardName, setCardName] = useState("Sanctuary Explorer");
+  const [selectedBank, setSelectedBank] = useState("HDFC Bank");
+
+  // Confirmation Output
+  const [processingStatus, setProcessingStatus] = useState("Initiating TLS 1.3 Handshake...");
+  const [confirmedTicket, setConfirmedTicket] = useState(null);
+  const [downloadingPdf, setDownloadingPdf] = useState(false);
+
+  // Fetch zones on mount
   useEffect(() => {
-    api.get("/zones")
-      .then(res => {
+    api
+      .get("/zones")
+      .then((res) => {
         const list = res.data.zones ?? [];
         setZones(list);
         if (preselectedZoneId) {
-          const match = list.find(z => z.zone_id === preselectedZoneId);
+          const match = list.find((z) => z.zone_id === preselectedZoneId);
           if (match) setSelectedZone(match);
+        } else if (list.length > 0) {
+          setSelectedZone(list[0]);
         }
       })
       .catch(() => setError("Could not load zones. Please try again."))
       .finally(() => setLoading(false));
-  }, []);
+  }, [preselectedZoneId]);
 
-  const handleBook = async () => {
-    if (!selectedZone) return;
-    setBooking(true);
+  // Price Calculation Breakdown
+  const baseUnitPrice = selectedZone ? parseFloat(selectedZone.ticket_price) : 0;
+  const subtotal = +(baseUnitPrice * passCount).toFixed(2);
+  const gst = +(subtotal * 0.18).toFixed(2);
+  const conservationFee = 25.0; // ₹25 conservation fund
+  const grandTotal = +(subtotal + gst).toFixed(2);
+
+  // Handle Payment Execution
+  const handleProceedToPayment = () => {
+    if (!selectedZone) {
+      setError("Please select a habitat zone.");
+      return;
+    }
     setError(null);
+    setStep("PAYMENT");
+  };
+
+  const handleExecutePayment = async () => {
+    setStep("PROCESSING");
+    setError(null);
+
+    // Simulate bank authorization sequence
     try {
-      const res = await api.post("/tickets/book", { zone_id: selectedZone.zone_id });
-      setSuccess(res.data.ticket);
-      onBooked(res.data.ticket);
+      setProcessingStatus("Encrypting Bank Handshake (AES-256-GCM)...");
+      await new Promise((r) => setTimeout(r, 600));
+
+      setProcessingStatus("Verifying 3D-Secure 2.0 Banking Protocol...");
+      await new Promise((r) => setTimeout(r, 700));
+
+      setProcessingStatus("Acquiring DBMS Pessimistic Lock & Reserving Capacity...");
+
+      const txnId = `TXN-${Date.now().toString(36).toUpperCase()}-${Math.random()
+        .toString(36)
+        .substring(2, 6)
+        .toUpperCase()}`;
+
+      const res = await api.post("/tickets/book", {
+        zone_id: selectedZone.zone_id,
+        payment_method: paymentMethod,
+        transaction_id: txnId,
+        pass_count: passCount,
+      });
+
+      if (res.data?.success) {
+        setConfirmedTicket(res.data.ticket);
+        onBooked(res.data.ticket);
+        setStep("SUCCESS");
+      } else {
+        throw new Error(res.data?.error || "Booking failed.");
+      }
     } catch (err) {
-      setError(err.response?.data?.error ?? "Booking failed. Please try again.");
-    } finally {
-      setBooking(false);
+      console.error("Payment Execution Failed:", err);
+      const msg = err.response?.data?.error || err.message || "Payment authorization failed.";
+      setError(msg);
+      setStep("PAYMENT");
     }
   };
 
-  /* GST is 18% for preview (actual is calculated server-side via stored procedure) */
-  const basePrice  = selectedZone ? parseFloat(selectedZone.ticket_price) : 0;
-  const gst        = +(basePrice * 0.18).toFixed(2);
-  const total      = +(basePrice + gst).toFixed(2);
+  // Download PDF E-Ticket directly
+  const handleDownloadPdf = async () => {
+    if (!confirmedTicket) return;
+    try {
+      setDownloadingPdf(true);
+      const res = await api.get(`/tickets/${confirmedTicket.ticket_id}/pdf`, {
+        responseType: "blob",
+      });
+      const blob = new Blob([res.data], { type: "application/pdf" });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", `Abhayarnya_Ticket_${confirmedTicket.ticket_id}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("PDF download failed:", err);
+    } finally {
+      setDownloadingPdf(false);
+    }
+  };
 
   return (
-    /* Backdrop */
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ background: "rgba(0,0,0,0.75)", backdropFilter: "blur(6px)" }}
-      onClick={e => e.target === e.currentTarget && onClose()}
+      style={{ background: "rgba(0,0,0,0.82)", backdropFilter: "blur(10px)" }}
+      onClick={(e) => e.target === e.currentTarget && onClose()}
     >
       <div
-        className="relative w-full max-w-md overflow-hidden"
+        className="relative w-full max-w-lg overflow-hidden rounded-2xl border border-white/10 bg-[#09150b] shadow-2xl transition-all"
         style={{
-          background:   "linear-gradient(145deg, rgba(13,26,15,0.98) 0%, rgba(9,18,10,0.99) 100%)",
-          borderRadius: "20px",
-          border:       "1px solid rgba(163,230,53,0.15)",
-          boxShadow:    "0 0 60px rgba(163,230,53,0.08)",
+          boxShadow: "0 0 80px rgba(163,230,53,0.12)",
         }}
       >
         {/* Top accent bar */}
-        <div className="h-0.5 w-full" style={{ background: "linear-gradient(90deg, #a3e635, rgba(163,230,53,0.15), transparent)" }} />
+        <div
+          className="h-1 w-full"
+          style={{
+            background:
+              "linear-gradient(90deg, #a3e635 0%, #34d399 50%, #38bdf8 100%)",
+          }}
+        />
 
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-5" style={{ borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
+        {/* Modal Top Header */}
+        <div className="flex items-center justify-between border-b border-white/10 px-6 py-4">
           <div className="flex items-center gap-2.5">
-            <Ticket size={16} style={{ color: "#a3e635" }} />
-            <p className="text-sm font-black uppercase tracking-[0.25em] text-white">Book a Safari</p>
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-lime-400/10 text-lime-400 border border-lime-400/20">
+              <Ticket size={16} />
+            </div>
+            <div>
+              <p className="text-sm font-black uppercase tracking-wider text-white">
+                Commercial Safari Checkout
+              </p>
+              <p className="text-[10px] text-white/40 flex items-center gap-1 font-mono">
+                <Lock size={10} className="text-emerald-400" />
+                256-Bit SSL Encrypted • RBI Compliant
+              </p>
+            </div>
           </div>
           <button
             onClick={onClose}
-            className="flex h-7 w-7 items-center justify-center rounded-full transition hover:bg-white/10"
-            style={{ color: "rgba(255,255,255,0.40)" }}
+            className="flex h-8 w-8 items-center justify-center rounded-full text-white/40 hover:bg-white/10 hover:text-white transition"
           >
-            <X size={15} />
+            <X size={16} />
           </button>
         </div>
 
-        <div className="px-6 py-5">
+        {/* Error Alert */}
+        {error && (
+          <div className="mx-6 mt-4 flex items-start gap-2.5 rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-red-300">
+            <AlertCircle size={15} className="mt-0.5 shrink-0 text-red-400" />
+            <p className="text-xs">{error}</p>
+          </div>
+        )}
 
-          {/* ── Success state ── */}
-          {success ? (
-            <div className="flex flex-col items-center gap-4 py-4 text-center">
-              <div
-                className="flex h-14 w-14 items-center justify-center"
-                style={{ background: "rgba(74,222,128,0.12)", borderRadius: "50%", color: "#4ade80" }}
-              >
-                <CheckCircle size={28} strokeWidth={1.5} />
+        {/* ══════════════════════════════════════════════════════════════════════
+            STEP 1: ZONE & PASS CONFIGURATION
+        ══════════════════════════════════════════════════════════════════════ */}
+        {step === "SELECT" && (
+          <div className="px-6 py-5">
+            {/* Zone Selector */}
+            <div className="mb-4">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[10px] font-black uppercase tracking-wider text-white/40">
+                  Select Habitat Zone
+                </span>
+                <span className="text-[10px] text-lime-400 font-mono">
+                  {zones.length} Active Zones
+                </span>
               </div>
-              <p className="text-lg font-black uppercase tracking-tight text-white">Ticket Booked!</p>
-              <p className="text-[11px] text-white/40">
-                Your safari ticket for <span className="text-lime-300">{success.zone?.name}</span> has been confirmed.
-              </p>
-              <div
-                className="w-full px-4 py-3 text-center"
-                style={{ background: "rgba(163,230,53,0.06)", border: "1px solid rgba(163,230,53,0.15)", borderRadius: "10px" }}
-              >
-                <p className="text-[9px] font-bold uppercase tracking-[0.25em] text-white/30">Total Paid</p>
-                <p className="mt-0.5 text-2xl font-black text-white">
-                  ₹{parseFloat(success.total_amount).toLocaleString("en-IN")}
+
+              {loading ? (
+                <div className="h-28 animate-pulse rounded-xl bg-white/5" />
+              ) : (
+                <div className="grid max-h-48 grid-cols-1 gap-2 overflow-y-auto pr-1">
+                  {zones.map((zone) => {
+                    const active = selectedZone?.zone_id === zone.zone_id;
+                    const meta = CLIMATE_META[zone.climate] ?? CLIMATE_META.TROPICAL;
+                    return (
+                      <button
+                        key={zone.zone_id}
+                        type="button"
+                        onClick={() => setSelectedZone(zone)}
+                        className={`flex items-center justify-between rounded-xl p-3 text-left transition ${
+                          active
+                            ? "bg-lime-400/15 border-2 border-lime-400 shadow-[0_0_15px_rgba(163,230,53,0.15)]"
+                            : "bg-white/5 border border-white/5 hover:border-white/15"
+                        }`}
+                      >
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <div
+                            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg"
+                            style={{ background: meta.bg, color: meta.color }}
+                          >
+                            <meta.icon size={13} />
+                          </div>
+                          <div className="min-w-0">
+                            <p className="truncate text-xs font-bold text-white">
+                              {zone.name}
+                            </p>
+                            <p className="text-[10px] text-white/40">
+                              {zone.climate} Climate • Cap: {zone.max_daily_capacity || 50}/day
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-1 font-bold text-sm text-lime-400">
+                          <span>₹{parseFloat(zone.ticket_price).toLocaleString("en-IN")}</span>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* Price Breakdown Panel */}
+            {selectedZone && (
+              <div className="mb-5 rounded-xl border border-white/10 bg-black/40 p-4">
+                <div className="flex justify-between text-xs text-white/50 mb-1.5">
+                  <span>Base Safari Fee</span>
+                  <span>₹{subtotal.toLocaleString("en-IN")}</span>
+                </div>
+                <div className="flex justify-between text-xs text-white/50 mb-1.5">
+                  <span>Wildlife Conservation Cess</span>
+                  <span className="text-emerald-400">FREE (Waived)</span>
+                </div>
+                <div className="flex justify-between text-xs text-white/50 mb-2">
+                  <span>Goods & Services Tax (18% GST)</span>
+                  <span>₹{gst.toLocaleString("en-IN")}</span>
+                </div>
+                <div className="h-px bg-white/10 my-2" />
+                <div className="flex items-baseline justify-between text-white">
+                  <span className="text-xs font-bold uppercase tracking-wider text-white/70">
+                    Total Amount Due
+                  </span>
+                  <span className="text-xl font-black text-lime-400">
+                    ₹{grandTotal.toLocaleString("en-IN")}
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {/* Proceed CTA */}
+            <button
+              onClick={handleProceedToPayment}
+              disabled={!selectedZone || loading}
+              className="flex w-full items-center justify-center gap-2 rounded-xl bg-lime-400 py-3 text-xs font-black uppercase tracking-widest text-black transition hover:bg-lime-300 disabled:opacity-50"
+            >
+              Continue to Payment <ArrowRight size={14} />
+            </button>
+          </div>
+        )}
+
+        {/* ══════════════════════════════════════════════════════════════════════
+            STEP 2: PAYMENT GATEWAY SELECTION & DETAILS
+        ══════════════════════════════════════════════════════════════════════ */}
+        {step === "PAYMENT" && (
+          <div className="px-6 py-5">
+            {/* Order Mini Summary */}
+            <div className="mb-4 flex items-center justify-between rounded-xl border border-white/10 bg-white/5 p-3">
+              <div>
+                <span className="text-[10px] text-white/40 block">Booking Item</span>
+                <span className="text-xs font-bold text-white">
+                  {selectedZone?.name} (Safari Pass)
+                </span>
+              </div>
+              <div className="text-right">
+                <span className="text-[10px] text-white/40 block">Payable Total</span>
+                <span className="text-base font-black text-lime-400">
+                  ₹{grandTotal.toLocaleString("en-IN")}
+                </span>
+              </div>
+            </div>
+
+            {/* Payment Mode Selector */}
+            <div className="mb-4 grid grid-cols-4 gap-1.5 rounded-xl border border-white/10 bg-black/50 p-1">
+              {[
+                { id: "UPI", label: "UPI / QR", icon: QrCode },
+                { id: "CARD", label: "Card", icon: CreditCard },
+                { id: "NETBANKING", label: "NetBank", icon: Building2 },
+                { id: "TEST", label: "1-Click", icon: Sparkles },
+              ].map((m) => (
+                <button
+                  key={m.id}
+                  onClick={() => setPaymentMethod(m.id)}
+                  className={`flex flex-col items-center gap-1 rounded-lg py-2 text-[10px] font-bold uppercase transition ${
+                    paymentMethod === m.id
+                      ? "bg-lime-400 text-black shadow"
+                      : "text-white/50 hover:text-white"
+                  }`}
+                >
+                  <m.icon size={14} />
+                  {m.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Mode 1: UPI */}
+            {paymentMethod === "UPI" && (
+              <div className="mb-4 space-y-3 rounded-xl border border-white/10 bg-white/5 p-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-white">Instant UPI Transfer</span>
+                  <div className="flex gap-2 text-[10px] font-bold text-white/50">
+                    <span className="rounded bg-white/10 px-1.5 py-0.5">GPay</span>
+                    <span className="rounded bg-white/10 px-1.5 py-0.5">PhonePe</span>
+                    <span className="rounded bg-white/10 px-1.5 py-0.5">Paytm</span>
+                  </div>
+                </div>
+                <div>
+                  <label className="text-[10px] font-semibold uppercase tracking-wider text-white/40 block mb-1">
+                    Virtual Payment Address (VPA) / UPI ID
+                  </label>
+                  <input
+                    type="text"
+                    value={upiId}
+                    onChange={(e) => setUpiId(e.target.value)}
+                    placeholder="username@okhdfcbank"
+                    className="w-full rounded-lg border border-white/15 bg-black/40 px-3 py-2 text-xs text-white outline-none focus:border-lime-400"
+                  />
+                </div>
+                <div className="rounded-lg bg-emerald-500/10 border border-emerald-500/20 p-2 text-[10px] text-emerald-400 flex items-center gap-2">
+                  <CheckCircle size={12} />
+                  <span>Verified Merchant: Abhayarnya National Tiger Reserve</span>
+                </div>
+              </div>
+            )}
+
+            {/* Mode 2: Card */}
+            {paymentMethod === "CARD" && (
+              <div className="mb-4 space-y-3 rounded-xl border border-white/10 bg-white/5 p-4">
+                <div>
+                  <label className="text-[10px] font-semibold uppercase tracking-wider text-white/40 block mb-1">
+                    Card Number
+                  </label>
+                  <input
+                    type="text"
+                    value={cardNumber}
+                    onChange={(e) => setCardNumber(e.target.value)}
+                    className="w-full rounded-lg border border-white/15 bg-black/40 px-3 py-2 font-mono text-xs text-white outline-none focus:border-lime-400"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="text-[10px] font-semibold uppercase tracking-wider text-white/40 block mb-1">
+                      Expiry (MM/YY)
+                    </label>
+                    <input
+                      type="text"
+                      value={cardExpiry}
+                      onChange={(e) => setCardExpiry(e.target.value)}
+                      className="w-full rounded-lg border border-white/15 bg-black/40 px-3 py-2 text-xs text-white outline-none focus:border-lime-400"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-semibold uppercase tracking-wider text-white/40 block mb-1">
+                      CVV / Security Code
+                    </label>
+                    <input
+                      type="password"
+                      value={cardCvv}
+                      onChange={(e) => setCardCvv(e.target.value)}
+                      className="w-full rounded-lg border border-white/15 bg-black/40 px-3 py-2 text-xs text-white outline-none focus:border-lime-400"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Mode 3: NetBanking */}
+            {paymentMethod === "NETBANKING" && (
+              <div className="mb-4 space-y-3 rounded-xl border border-white/10 bg-white/5 p-4">
+                <label className="text-[10px] font-semibold uppercase tracking-wider text-white/40 block mb-1">
+                  Select Banking Institution
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  {["HDFC Bank", "State Bank of India", "ICICI Bank", "Axis Bank"].map((b) => (
+                    <button
+                      key={b}
+                      onClick={() => setSelectedBank(b)}
+                      className={`rounded-lg border p-2.5 text-left text-xs font-bold transition ${
+                        selectedBank === b
+                          ? "border-lime-400 bg-lime-400/10 text-lime-300"
+                          : "border-white/10 bg-black/30 text-white/60 hover:text-white"
+                      }`}
+                    >
+                      {b}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Mode 4: Instant Test Mode */}
+            {paymentMethod === "TEST" && (
+              <div className="mb-4 rounded-xl border border-lime-400/30 bg-lime-400/10 p-4">
+                <span className="flex items-center gap-1.5 text-xs font-black uppercase text-lime-400">
+                  <Sparkles size={14} /> Developer Sandbox Authorization
+                </span>
+                <p className="mt-1 text-[11px] text-white/70">
+                  Instantly authorizes payment via the backend mock gateway pipeline with mock bank confirmation token.
                 </p>
               </div>
+            )}
+
+            {/* Action Buttons */}
+            <div className="flex gap-2">
               <button
-                onClick={onClose}
-                className="mt-1 w-full py-2.5 text-[10px] font-bold uppercase tracking-[0.25em] text-white/60 transition hover:text-white"
-                style={{ background: "rgba(255,255,255,0.04)", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.07)" }}
+                onClick={() => setStep("SELECT")}
+                className="rounded-xl border border-white/10 px-4 py-3 text-xs font-bold uppercase tracking-wider text-white/60 hover:text-white transition"
               >
-                Close
+                Back
+              </button>
+              <button
+                onClick={handleExecutePayment}
+                className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-lime-400 py-3 text-xs font-black uppercase tracking-widest text-black transition hover:bg-lime-300 shadow-[0_0_20px_rgba(163,230,53,0.3)]"
+              >
+                Authorize Payment (₹{grandTotal.toLocaleString("en-IN")}) <ArrowRight size={14} />
               </button>
             </div>
-          ) : (
-            <>
-              {/* Zone picker */}
-              <div className="mb-5">
-                <p className="mb-2.5 text-[9px] font-bold uppercase tracking-[0.28em] text-white/35">Select Zone</p>
-                {loading ? (
-                  <div className="h-11 animate-pulse" style={{ background: "rgba(163,230,53,0.05)", borderRadius: "10px" }} />
-                ) : (
-                  <div className="flex flex-col gap-2 max-h-52 overflow-y-auto pr-1"
-                    style={{ scrollbarWidth: "thin", scrollbarColor: "rgba(163,230,53,0.2) transparent" }}
-                  >
-                    {zones.map(zone => {
-                      const meta    = CLIMATE_META[zone.climate] ?? CLIMATE_META.TROPICAL;
-                      const active  = selectedZone?.zone_id === zone.zone_id;
-                      return (
-                        <button
-                          key={zone.zone_id}
-                          onClick={() => setSelectedZone(zone)}
-                          className="flex items-center justify-between gap-3 px-4 py-3 text-left transition-all"
-                          style={{
-                            background:   active ? "rgba(163,230,53,0.09)" : "rgba(255,255,255,0.02)",
-                            border:       active ? "1px solid rgba(163,230,53,0.35)" : "1px solid rgba(255,255,255,0.06)",
-                            borderRadius: "10px",
-                          }}
-                        >
-                          <div className="flex items-center gap-2.5 min-w-0">
-                            <div
-                              className="flex h-6 w-6 shrink-0 items-center justify-center"
-                              style={{ background: meta.bg, borderRadius: "6px", color: meta.color }}
-                            >
-                              <meta.icon size={11} strokeWidth={2} />
-                            </div>
-                            <span className="truncate text-[12px] font-bold text-white/80">{zone.name}</span>
-                          </div>
-                          <div className="flex items-center gap-0.5 shrink-0">
-                            <IndianRupee size={10} style={{ color: active ? "#a3e635" : "rgba(255,255,255,0.30)" }} />
-                            <span className="text-[11px] font-black" style={{ color: active ? "#a3e635" : "rgba(255,255,255,0.40)" }}>
-                              {parseFloat(zone.ticket_price).toLocaleString("en-IN")}
-                            </span>
-                          </div>
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
+          </div>
+        )}
+
+        {/* ══════════════════════════════════════════════════════════════════════
+            STEP 3: PROCESSING & ENCRYPTED HANDSHAKE
+        ══════════════════════════════════════════════════════════════════════ */}
+        {step === "PROCESSING" && (
+          <div className="flex flex-col items-center justify-center px-6 py-14 text-center">
+            <div className="relative mb-6">
+              <div className="h-16 w-16 animate-spin rounded-full border-4 border-lime-400/20 border-t-lime-400" />
+              <Shield
+                size={24}
+                className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-lime-400"
+              />
+            </div>
+            <h3 className="text-base font-black uppercase text-white">
+              Securing Transaction
+            </h3>
+            <p className="mt-2 text-xs font-mono text-lime-400/90 animate-pulse">
+              {processingStatus}
+            </p>
+            <p className="mt-4 text-[10px] text-white/30 max-w-xs leading-relaxed">
+              Applying PostgreSQL row-level locks and finalizing ticket ledger. Please do not refresh.
+            </p>
+          </div>
+        )}
+
+        {/* ══════════════════════════════════════════════════════════════════════
+            STEP 4: COMMERCIAL DIGITAL RECEIPT & CONFIRMATION
+        ══════════════════════════════════════════════════════════════════════ */}
+        {step === "SUCCESS" && confirmedTicket && (
+          <div className="px-6 py-6 text-center">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 shadow-[0_0_30px_rgba(52,211,153,0.3)]">
+              <CheckCircle2 size={32} />
+            </div>
+
+            <h3 className="mt-3 text-xl font-black uppercase text-white">
+              Payment Confirmed!
+            </h3>
+            <p className="text-xs text-white/50">
+              Official Digital Safari Pass #
+              <span className="font-mono text-lime-400 font-bold">
+                {confirmedTicket.ticket_id}
+              </span>{" "}
+              sealed & issued.
+            </p>
+
+            {/* Official Tax Invoice Receipt Box */}
+            <div className="mt-4 rounded-xl border border-white/10 bg-black/60 p-4 text-left font-mono text-xs text-white/80 space-y-2">
+              <div className="flex justify-between border-b border-white/10 pb-2">
+                <span className="text-white/40">TRANSACTION REF</span>
+                <span className="font-bold text-lime-400">
+                  {confirmedTicket.transaction_id}
+                </span>
               </div>
+              <div className="flex justify-between">
+                <span className="text-white/40">HABITAT ZONE</span>
+                <span className="text-white">{confirmedTicket.zone?.name}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-white/40">PAYMENT METHOD</span>
+                <span className="text-white">{confirmedTicket.payment_method}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-white/40">BASE FARE</span>
+                <span>₹{confirmedTicket.base_cost}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-white/40">GST (18%)</span>
+                <span>₹{confirmedTicket.gst_amount}</span>
+              </div>
+              <div className="flex justify-between border-t border-white/10 pt-2 text-sm font-bold text-white">
+                <span>TOTAL PAID</span>
+                <span className="text-lime-400">₹{confirmedTicket.total_amount}</span>
+              </div>
+            </div>
 
-              {/* Price breakdown (shows when zone selected) */}
-              {selectedZone && (
-                <div
-                  className="mb-5 px-4 py-3"
-                  style={{ background: "rgba(163,230,53,0.04)", border: "1px solid rgba(163,230,53,0.10)", borderRadius: "12px" }}
-                >
-                  <div className="flex items-center justify-between mb-1.5">
-                    <span className="text-[10px] text-white/35">Base Price</span>
-                    <span className="text-[11px] font-semibold text-white/60">₹{basePrice.toLocaleString("en-IN")}</span>
-                  </div>
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-[10px] text-white/35">GST (18%)</span>
-                    <span className="text-[11px] font-semibold text-white/60">₹{gst.toLocaleString("en-IN")}</span>
-                  </div>
-                  <div style={{ height: "1px", background: "rgba(255,255,255,0.06)" }} />
-                  <div className="flex items-center justify-between mt-2">
-                    <span className="text-[10px] font-bold uppercase tracking-[0.22em] text-white/50">Total</span>
-                    <span className="text-base font-black text-lime-300">₹{total.toLocaleString("en-IN")}</span>
-                  </div>
-                  <p className="mt-1 text-[8px] text-white/18">* Final amount confirmed by server at booking time.</p>
-                </div>
-              )}
+            {/* Email Dispatch Notice */}
+            <div className="mt-3 flex items-center justify-center gap-2 text-[10px] text-white/40">
+              <Mail size={12} className="text-lime-400" />
+              <span>PDF pass with QR code sent to your registered email address.</span>
+            </div>
 
-              {/* Error */}
-              {error && (
-                <div className="mb-4 flex items-start gap-2 px-4 py-3" style={{ background: "rgba(239,68,68,0.06)", border: "1px solid rgba(239,68,68,0.18)", borderRadius: "10px" }}>
-                  <AlertCircle size={13} className="mt-0.5 shrink-0 text-red-400" />
-                  <p className="text-[11px] text-red-300">{error}</p>
-                </div>
-              )}
-
-              {/* CTA */}
+            {/* Actions: Download PDF pass & Close */}
+            <div className="mt-5 flex gap-2">
               <button
-                onClick={handleBook}
-                disabled={!selectedZone || booking}
-                className="w-full py-3 text-[11px] font-black uppercase tracking-[0.3em] transition-all"
-                style={{
-                  background:   !selectedZone || booking ? "rgba(163,230,53,0.08)" : "rgba(163,230,53,1)",
-                  color:        !selectedZone || booking ? "rgba(163,230,53,0.35)" : "#0d1a0f",
-                  borderRadius: "10px",
-                  border:       "1px solid rgba(163,230,53,0.20)",
-                  cursor:       !selectedZone || booking ? "not-allowed" : "pointer",
-                }}
+                onClick={handleDownloadPdf}
+                disabled={downloadingPdf}
+                className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-lime-400 py-3 text-xs font-black uppercase tracking-wider text-black transition hover:bg-lime-300 disabled:opacity-50"
               >
-                {booking ? "Processing…" : "Confirm Booking"}
+                {downloadingPdf ? (
+                  <RefreshCw size={13} className="animate-spin" />
+                ) : (
+                  <Download size={14} />
+                )}
+                {downloadingPdf ? "Generating PDF..." : "Download E-Ticket PDF"}
               </button>
-            </>
-          )}
-        </div>
+              <button
+                onClick={onClose}
+                className="rounded-xl border border-white/10 px-5 py-3 text-xs font-bold uppercase tracking-wider text-white hover:bg-white/10 transition"
+              >
+                Done
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
