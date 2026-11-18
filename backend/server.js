@@ -15,6 +15,7 @@ import healthRoutes from './routes/healthRoutes.js'
 import feedbackRoutes from './routes/feedbackRoutes.js'
 import contactRoutes from './routes/contactRoutes.js'
 import dashboardRoutes from './routes/dashboardRoutes.js'
+import paymentRoutes from './routes/paymentRoutes.js'
 import prisma from './config/prisma.js'
 import ping from 'ping'
 import { Server } from 'socket.io'
@@ -146,6 +147,7 @@ app.use('/api/medical',   healthRoutes)
 app.use('/api/feedback',  feedbackRoutes)
 app.use('/api/contact',   contactRoutes)
 app.use('/api/dashboard', dashboardRoutes)
+app.use('/api/payment',   paymentRoutes)
 
 // ── 404 handler ───────────────────────────────────────────────────────────────
 app.use((req, res) => {

@@ -378,6 +378,24 @@ async function runTestSuite() {
     printFail('Transactional Ticket Purchase (/api/tickets/book)', err.message);
   }
 
+  // Razorpay Order Creation Engine Test
+  try {
+    const rzpOrderRes = await runRequest('/payment/create-order', {
+      method: 'POST',
+      body: JSON.stringify({ zone_id: Number(testZoneId) })
+    });
+    if (rzpOrderRes.ok && rzpOrderRes.data?.order_id) {
+      printPass(
+        'Razorpay Order Creation Engine (/api/payment/create-order)',
+        `Order ID: ${rzpOrderRes.data.order_id}, Amount: ₹${(rzpOrderRes.data.amount / 100).toFixed(2)} (${rzpOrderRes.data.is_live_razorpay ? 'Live Cloud' : 'Sandbox Mock'})`
+      );
+    } else {
+      printFail('Razorpay Order Creation Engine (/api/payment/create-order)', JSON.stringify(rzpOrderRes.data));
+    }
+  } catch (err) {
+    printFail('Razorpay Order Creation Engine (/api/payment/create-order)', err.message);
+  }
+
   // Check if WebSocket received the real-time event
   await new Promise((r) => setTimeout(r, 1200)); // Brief pause for socket propagation
   if (socketReceivedTicket) {

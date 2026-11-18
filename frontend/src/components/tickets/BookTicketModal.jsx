@@ -19,39 +19,40 @@ import {
   ChevronRight,
   RefreshCw,
   Mail,
+  Zap,
 } from "lucide-react";
 import { CLIMATE_META } from "../../constants/climateData";
+import { useAuth } from "../../context/AuthContext";
 import api from "../../api/axiosInstance";
 
 /**
- * Commercial Safari Checkout Modal & Payment Gateway
+ * Commercial Safari Checkout Modal & Razorpay Payment Gateway
  *
  * Implements:
- * - Step 1: Zone selection, guest quantity, and real-time fee calculation.
- * - Step 2: Commercial simulated payment gateway (UPI, Card, NetBanking, Instant Test).
- * - Step 3: Bank authorization & cryptographic handshake simulation.
+ * - Step 1: Zone selection and real-time fee calculation.
+ * - Step 2: Official Razorpay Cloud Checkout (with HMAC-SHA256 signature verification) + Fallback Sandbox.
+ * - Step 3: Cryptographic verification & PostgreSQL pessimistic row locking (SELECT FOR UPDATE).
  * - Step 4: Digital tax invoice receipt with instant PDF E-Ticket download and email dispatch.
  */
 const BookTicketModal = ({ onClose, onBooked, preselectedZoneId }) => {
-  // Navigation & Steps: 'SELECT' | 'PAYMENT' | 'PROCESSING' | 'SUCCESS'
-  const [step, setStep] = useState("SELECT");
+  const { user } = useAuth();
+  const [step, setStep] = useState("SELECT"); // 'SELECT' | 'PAYMENT' | 'PROCESSING' | 'SUCCESS'
   const [zones, setZones] = useState([]);
   const [selectedZone, setSelectedZone] = useState(null);
-  const [passCount, setPassCount] = useState(1);
   const [loading, setLoading] = useState(true);
+  const [processing, setProcessing] = useState(false);
   const [error, setError] = useState(null);
 
-  // Payment Options & Inputs
-  const [paymentMethod, setPaymentMethod] = useState("UPI"); // 'UPI' | 'CARD' | 'NETBANKING' | 'TEST'
+  // Simulated fallback payment states
+  const [paymentMethod, setPaymentMethod] = useState("RAZORPAY"); // 'RAZORPAY' | 'UPI' | 'CARD' | 'NETBANKING'
   const [upiId, setUpiId] = useState("visitor@okhdfcbank");
   const [cardNumber, setCardNumber] = useState("4532 •••• •••• 8821");
   const [cardExpiry, setCardExpiry] = useState("08/28");
   const [cardCvv, setCardCvv] = useState("742");
-  const [cardName, setCardName] = useState("Sanctuary Explorer");
   const [selectedBank, setSelectedBank] = useState("HDFC Bank");
 
-  // Confirmation Output
-  const [processingStatus, setProcessingStatus] = useState("Initiating TLS 1.3 Handshake...");
+  // Output states
+  const [processingStatus, setProcessingStatus] = useState("Initiating Order...");
   const [confirmedTicket, setConfirmedTicket] = useState(null);
   const [downloadingPdf, setDownloadingPdf] = useState(false);
 
@@ -73,47 +74,124 @@ const BookTicketModal = ({ onClose, onBooked, preselectedZoneId }) => {
       .finally(() => setLoading(false));
   }, [preselectedZoneId]);
 
-  // Price Calculation Breakdown
+  // Price Calculation Breakdown (Base Fare + 18% GST)
   const baseUnitPrice = selectedZone ? parseFloat(selectedZone.ticket_price) : 0;
-  const subtotal = +(baseUnitPrice * passCount).toFixed(2);
-  const gst = +(subtotal * 0.18).toFixed(2);
-  const conservationFee = 25.0; // ₹25 conservation fund
-  const grandTotal = +(subtotal + gst).toFixed(2);
+  const gst = +(baseUnitPrice * 0.18).toFixed(2);
+  const grandTotal = +(baseUnitPrice + gst).toFixed(2);
 
-  // Handle Payment Execution
-  const handleProceedToPayment = () => {
+  /**
+   * Primary Action: Trigger Official Razorpay Cloud Checkout
+   */
+  const handleLaunchRazorpay = async () => {
     if (!selectedZone) {
       setError("Please select a habitat zone.");
       return;
     }
+
     setError(null);
-    setStep("PAYMENT");
+    setProcessing(true);
+
+    try {
+      // Step 1: Create Order on backend
+      const res = await api.post("/payment/create-order", {
+        zone_id: selectedZone.zone_id,
+      });
+
+      if (!res.data?.success) {
+        throw new Error(res.data?.error || "Failed to create payment order");
+      }
+
+      const orderData = res.data;
+
+      // If Razorpay JS script is loaded on window and keys are configured
+      if (typeof window !== "undefined" && window.Razorpay && orderData.is_live_razorpay) {
+        const options = {
+          key: orderData.key_id,
+          amount: orderData.amount,
+          currency: orderData.currency,
+          name: "Abhayarnya Wildlife Sanctuary",
+          description: `Safari Entry Pass — ${selectedZone.name}`,
+          order_id: orderData.order_id,
+          prefill: {
+            name: `${user?.first_name || "Visitor"} ${user?.last_name || ""}`,
+            email: user?.email || "",
+          },
+          theme: {
+            color: "#65a30d",
+          },
+          handler: async function (response) {
+            setStep("PROCESSING");
+            setProcessingStatus("Verifying HMAC-SHA256 Cryptographic Signature...");
+            try {
+              const verifyRes = await api.post("/payment/verify-and-book", {
+                zone_id: selectedZone.zone_id,
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature,
+              });
+
+              if (verifyRes.data?.success) {
+                setConfirmedTicket(verifyRes.data.ticket);
+                onBooked(verifyRes.data.ticket);
+                setStep("SUCCESS");
+              } else {
+                throw new Error(verifyRes.data?.error || "Payment verification failed.");
+              }
+            } catch (vErr) {
+              setError(vErr.response?.data?.error || vErr.message);
+              setStep("SELECT");
+            }
+          },
+          modal: {
+            ondismiss: function () {
+              setProcessing(false);
+            },
+          },
+        };
+
+        const rzp = new window.Razorpay(options);
+        rzp.on("payment.failed", function (resp) {
+          setError(`Razorpay Payment Failed: ${resp.error?.description || "Transaction declined"}`);
+          setProcessing(false);
+        });
+        rzp.open();
+        setProcessing(false);
+      } else {
+        // If RAZORPAY_KEY_ID is not configured in .env yet, open the interactive gateway modal
+        setStep("PAYMENT");
+        setProcessing(false);
+      }
+    } catch (err) {
+      console.error("Payment initiation failed:", err);
+      setError(err.response?.data?.error || err.message);
+      setProcessing(false);
+    }
   };
 
-  const handleExecutePayment = async () => {
+  /**
+   * Secondary Action: Execute Simulated Gateway (when keys not set in .env)
+   */
+  const handleExecuteSimulatedPayment = async () => {
     setStep("PROCESSING");
     setError(null);
 
-    // Simulate bank authorization sequence
     try {
-      setProcessingStatus("Encrypting Bank Handshake (AES-256-GCM)...");
+      setProcessingStatus("Simulating Bank Gateway Handshake (AES-256-GCM)...");
       await new Promise((r) => setTimeout(r, 600));
 
-      setProcessingStatus("Verifying 3D-Secure 2.0 Banking Protocol...");
-      await new Promise((r) => setTimeout(r, 700));
+      setProcessingStatus("Authorizing 3D-Secure Protocol & Order Verification...");
+      await new Promise((r) => setTimeout(r, 600));
 
-      setProcessingStatus("Acquiring DBMS Pessimistic Lock & Reserving Capacity...");
+      setProcessingStatus("Executing PostgreSQL SELECT FOR UPDATE Row Locking...");
 
-      const txnId = `TXN-${Date.now().toString(36).toUpperCase()}-${Math.random()
+      const txnId = `pay_rzp_${Date.now().toString(36)}_${Math.random()
         .toString(36)
-        .substring(2, 6)
-        .toUpperCase()}`;
+        .substring(2, 6)}`;
 
       const res = await api.post("/tickets/book", {
         zone_id: selectedZone.zone_id,
-        payment_method: paymentMethod,
+        payment_method: `RAZORPAY_${paymentMethod}`,
         transaction_id: txnId,
-        pass_count: passCount,
       });
 
       if (res.data?.success) {
@@ -125,8 +203,7 @@ const BookTicketModal = ({ onClose, onBooked, preselectedZoneId }) => {
       }
     } catch (err) {
       console.error("Payment Execution Failed:", err);
-      const msg = err.response?.data?.error || err.message || "Payment authorization failed.";
-      setError(msg);
+      setError(err.response?.data?.error || err.message || "Payment authorization failed.");
       setStep("PAYMENT");
     }
   };
@@ -158,7 +235,7 @@ const BookTicketModal = ({ onClose, onBooked, preselectedZoneId }) => {
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ background: "rgba(0,0,0,0.82)", backdropFilter: "blur(10px)" }}
+      style={{ background: "rgba(0,0,0,0.85)", backdropFilter: "blur(12px)" }}
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
       <div
@@ -184,11 +261,11 @@ const BookTicketModal = ({ onClose, onBooked, preselectedZoneId }) => {
             </div>
             <div>
               <p className="text-sm font-black uppercase tracking-wider text-white">
-                Commercial Safari Checkout
+                Razorpay Safari Checkout
               </p>
               <p className="text-[10px] text-white/40 flex items-center gap-1 font-mono">
                 <Lock size={10} className="text-emerald-400" />
-                256-Bit SSL Encrypted • RBI Compliant
+                HMAC-SHA256 Signature Verification • PCI-DSS
               </p>
             </div>
           </div>
@@ -209,7 +286,7 @@ const BookTicketModal = ({ onClose, onBooked, preselectedZoneId }) => {
         )}
 
         {/* ══════════════════════════════════════════════════════════════════════
-            STEP 1: ZONE & PASS CONFIGURATION
+            STEP 1: ZONE CONFIGURATION & RAZORPAY LAUNCH
         ══════════════════════════════════════════════════════════════════════ */}
         {step === "SELECT" && (
           <div className="px-6 py-5">
@@ -273,11 +350,11 @@ const BookTicketModal = ({ onClose, onBooked, preselectedZoneId }) => {
               <div className="mb-5 rounded-xl border border-white/10 bg-black/40 p-4">
                 <div className="flex justify-between text-xs text-white/50 mb-1.5">
                   <span>Base Safari Fee</span>
-                  <span>₹{subtotal.toLocaleString("en-IN")}</span>
+                  <span>₹{baseUnitPrice.toLocaleString("en-IN")}</span>
                 </div>
                 <div className="flex justify-between text-xs text-white/50 mb-1.5">
-                  <span>Wildlife Conservation Cess</span>
-                  <span className="text-emerald-400">FREE (Waived)</span>
+                  <span>Forest Conservation Cess</span>
+                  <span className="text-emerald-400 font-semibold">FREE (Waived)</span>
                 </div>
                 <div className="flex justify-between text-xs text-white/50 mb-2">
                   <span>Goods & Services Tax (18% GST)</span>
@@ -286,7 +363,7 @@ const BookTicketModal = ({ onClose, onBooked, preselectedZoneId }) => {
                 <div className="h-px bg-white/10 my-2" />
                 <div className="flex items-baseline justify-between text-white">
                   <span className="text-xs font-bold uppercase tracking-wider text-white/70">
-                    Total Amount Due
+                    Total Payable Amount
                   </span>
                   <span className="text-xl font-black text-lime-400">
                     ₹{grandTotal.toLocaleString("en-IN")}
@@ -295,22 +372,39 @@ const BookTicketModal = ({ onClose, onBooked, preselectedZoneId }) => {
               </div>
             )}
 
-            {/* Proceed CTA */}
+            {/* Proceed with Razorpay CTA */}
             <button
-              onClick={handleProceedToPayment}
-              disabled={!selectedZone || loading}
-              className="flex w-full items-center justify-center gap-2 rounded-xl bg-lime-400 py-3 text-xs font-black uppercase tracking-widest text-black transition hover:bg-lime-300 disabled:opacity-50"
+              onClick={handleLaunchRazorpay}
+              disabled={!selectedZone || loading || processing}
+              className="flex w-full items-center justify-center gap-2 rounded-xl bg-lime-400 py-3 text-xs font-black uppercase tracking-widest text-black transition hover:bg-lime-300 shadow-[0_0_25px_rgba(163,230,53,0.35)] disabled:opacity-50"
             >
-              Continue to Payment <ArrowRight size={14} />
+              {processing ? (
+                <>
+                  <RefreshCw size={14} className="animate-spin" />
+                  Connecting to Razorpay...
+                </>
+              ) : (
+                <>
+                  <Zap size={14} /> Pay with Razorpay (₹{grandTotal.toLocaleString("en-IN")})
+                </>
+              )}
             </button>
           </div>
         )}
 
         {/* ══════════════════════════════════════════════════════════════════════
-            STEP 2: PAYMENT GATEWAY SELECTION & DETAILS
+            STEP 2: PAYMENT GATEWAY (SANDBOX SIMULATION IF KEYS NOT SET IN .ENV)
         ══════════════════════════════════════════════════════════════════════ */}
         {step === "PAYMENT" && (
           <div className="px-6 py-5">
+            {/* Notice if keys are missing */}
+            <div className="mb-4 rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-amber-300 text-xs">
+              <span className="font-bold block">Developer Notice:</span>
+              <span>
+                Razorpay Cloud API keys are not yet configured in <code>backend/.env</code>. Running in high-fidelity sandbox gateway mode.
+              </span>
+            </div>
+
             {/* Order Mini Summary */}
             <div className="mb-4 flex items-center justify-between rounded-xl border border-white/10 bg-white/5 p-3">
               <div>
@@ -320,7 +414,7 @@ const BookTicketModal = ({ onClose, onBooked, preselectedZoneId }) => {
                 </span>
               </div>
               <div className="text-right">
-                <span className="text-[10px] text-white/40 block">Payable Total</span>
+                <span className="text-[10px] text-white/40 block">Total Due</span>
                 <span className="text-base font-black text-lime-400">
                   ₹{grandTotal.toLocaleString("en-IN")}
                 </span>
@@ -328,12 +422,11 @@ const BookTicketModal = ({ onClose, onBooked, preselectedZoneId }) => {
             </div>
 
             {/* Payment Mode Selector */}
-            <div className="mb-4 grid grid-cols-4 gap-1.5 rounded-xl border border-white/10 bg-black/50 p-1">
+            <div className="mb-4 grid grid-cols-3 gap-1.5 rounded-xl border border-white/10 bg-black/50 p-1">
               {[
                 { id: "UPI", label: "UPI / QR", icon: QrCode },
                 { id: "CARD", label: "Card", icon: CreditCard },
                 { id: "NETBANKING", label: "NetBank", icon: Building2 },
-                { id: "TEST", label: "1-Click", icon: Sparkles },
               ].map((m) => (
                 <button
                   key={m.id}
@@ -369,13 +462,9 @@ const BookTicketModal = ({ onClose, onBooked, preselectedZoneId }) => {
                     type="text"
                     value={upiId}
                     onChange={(e) => setUpiId(e.target.value)}
-                    placeholder="username@okhdfcbank"
+                    placeholder="visitor@okhdfcbank"
                     className="w-full rounded-lg border border-white/15 bg-black/40 px-3 py-2 text-xs text-white outline-none focus:border-lime-400"
                   />
-                </div>
-                <div className="rounded-lg bg-emerald-500/10 border border-emerald-500/20 p-2 text-[10px] text-emerald-400 flex items-center gap-2">
-                  <CheckCircle size={12} />
-                  <span>Verified Merchant: Abhayarnya National Tiger Reserve</span>
                 </div>
               </div>
             )}
@@ -445,18 +534,6 @@ const BookTicketModal = ({ onClose, onBooked, preselectedZoneId }) => {
               </div>
             )}
 
-            {/* Mode 4: Instant Test Mode */}
-            {paymentMethod === "TEST" && (
-              <div className="mb-4 rounded-xl border border-lime-400/30 bg-lime-400/10 p-4">
-                <span className="flex items-center gap-1.5 text-xs font-black uppercase text-lime-400">
-                  <Sparkles size={14} /> Developer Sandbox Authorization
-                </span>
-                <p className="mt-1 text-[11px] text-white/70">
-                  Instantly authorizes payment via the backend mock gateway pipeline with mock bank confirmation token.
-                </p>
-              </div>
-            )}
-
             {/* Action Buttons */}
             <div className="flex gap-2">
               <button
@@ -466,10 +543,10 @@ const BookTicketModal = ({ onClose, onBooked, preselectedZoneId }) => {
                 Back
               </button>
               <button
-                onClick={handleExecutePayment}
+                onClick={handleExecuteSimulatedPayment}
                 className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-lime-400 py-3 text-xs font-black uppercase tracking-widest text-black transition hover:bg-lime-300 shadow-[0_0_20px_rgba(163,230,53,0.3)]"
               >
-                Authorize Payment (₹{grandTotal.toLocaleString("en-IN")}) <ArrowRight size={14} />
+                Authorize Sandbox Payment (₹{grandTotal.toLocaleString("en-IN")}) <ArrowRight size={14} />
               </button>
             </div>
           </div>
@@ -516,7 +593,7 @@ const BookTicketModal = ({ onClose, onBooked, preselectedZoneId }) => {
               <span className="font-mono text-lime-400 font-bold">
                 {confirmedTicket.ticket_id}
               </span>{" "}
-              sealed & issued.
+              issued via Razorpay.
             </p>
 
             {/* Official Tax Invoice Receipt Box */}
@@ -527,12 +604,18 @@ const BookTicketModal = ({ onClose, onBooked, preselectedZoneId }) => {
                   {confirmedTicket.transaction_id}
                 </span>
               </div>
+              {confirmedTicket.razorpay_order_id && (
+                <div className="flex justify-between">
+                  <span className="text-white/40">RAZORPAY ORDER ID</span>
+                  <span className="text-white">{confirmedTicket.razorpay_order_id}</span>
+                </div>
+              )}
               <div className="flex justify-between">
                 <span className="text-white/40">HABITAT ZONE</span>
                 <span className="text-white">{confirmedTicket.zone?.name}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-white/40">PAYMENT METHOD</span>
+                <span className="text-white/40">GATEWAY RAIL</span>
                 <span className="text-white">{confirmedTicket.payment_method}</span>
               </div>
               <div className="flex justify-between">
@@ -552,7 +635,7 @@ const BookTicketModal = ({ onClose, onBooked, preselectedZoneId }) => {
             {/* Email Dispatch Notice */}
             <div className="mt-3 flex items-center justify-center gap-2 text-[10px] text-white/40">
               <Mail size={12} className="text-lime-400" />
-              <span>PDF pass with QR code sent to your registered email address.</span>
+              <span>Official PDF pass with QR code dispatched to your email address.</span>
             </div>
 
             {/* Actions: Download PDF pass & Close */}
