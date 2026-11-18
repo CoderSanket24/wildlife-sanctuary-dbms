@@ -1,3 +1,9 @@
+-- ============================================================
+--  TICKET CHECK-IN & LIFECYCLE SCHEMA EXTENSIONS
+-- ============================================================
+ALTER TABLE tickets ADD COLUMN IF NOT EXISTS status VARCHAR(20) DEFAULT 'CONFIRMED';
+ALTER TABLE tickets ADD COLUMN IF NOT EXISTS checked_in_at TIMESTAMPTZ;
+
 CREATE OR REPLACE FUNCTION fn_calculate_ticket_costs()
 RETURNS TRIGGER AS $$
 DECLARE

@@ -45,16 +45,22 @@ const createTransporter = async () => {
   });
 };
 
-export const sendEmail = async (to, subject, text) => {
+export const sendEmail = async (to, subject, text, attachments = []) => {
   try {
     const transporter = await createTransporter();
 
-    const info = await transporter.sendMail({
+    const mailOptions = {
       from: `"Wildlife Sanctuary System" <${process.env.SMTP_USER || 'admin@wildlife.org'}>`,
       to,
       subject,
       text,
-    });
+    };
+
+    if (Array.isArray(attachments) && attachments.length > 0) {
+      mailOptions.attachments = attachments;
+    }
+
+    const info = await transporter.sendMail(mailOptions);
 
     console.log('[SMTP] Message ID :', info.messageId);
 

@@ -312,6 +312,8 @@ async function runTestSuite() {
   // ─────────────────────────────────────────────────────────────────────────
   printSection('5. Transactional Ticket Booking & Background Email');
 
+  let bookedTicketId = null;
+
   try {
     const bookRes = await runRequest('/tickets/book', {
       method: 'POST',
@@ -319,9 +321,10 @@ async function runTestSuite() {
     });
 
     if (bookRes.ok && bookRes.data?.success) {
+      bookedTicketId = bookRes.data.ticket?.ticket_id;
       printPass(
         'Transactional Ticket Purchase (/api/tickets/book)', 
-        `Ticket #${bookRes.data.ticket?.ticket_id} booked in ${bookRes.duration}ms (Total: ₹${bookRes.data.ticket?.total_amount})`
+        `Ticket #${bookedTicketId} booked in ${bookRes.duration}ms (Total: ₹${bookRes.data.ticket?.total_amount})`
       );
     } else {
       printFail('Transactional Ticket Purchase (/api/tickets/book)', JSON.stringify(bookRes.data));
@@ -340,6 +343,48 @@ async function runTestSuite() {
 
   if (socket) {
     socket.disconnect();
+  }
+
+  // ── Phase 1: PDF E-Ticket & Gate Verification Tests ─────────────────────
+  if (bookedTicketId) {
+    // Test PDF E-Ticket generation & streaming
+    try {
+      const pdfRes = await runRequest(`/tickets/${bookedTicketId}/pdf`);
+      if (pdfRes.ok) {
+        printPass('Download Branded PDF E-Ticket (/api/tickets/:id/pdf)', `Generated official PDF pass in ${pdfRes.duration}ms`);
+      } else {
+        printFail('Download Branded PDF E-Ticket (/api/tickets/:id/pdf)', JSON.stringify(pdfRes.data));
+      }
+    } catch (err) {
+      printFail('Download Branded PDF E-Ticket (/api/tickets/:id/pdf)', err.message);
+    }
+
+    // Test QR Checkpoint Verification
+    try {
+      const verifyRes = await runRequest(`/tickets/verify/${bookedTicketId}`);
+      if (verifyRes.ok && verifyRes.data?.valid) {
+        printPass('Electronic QR Pass Verification (/api/tickets/verify/:id)', `Status: ${verifyRes.data.ticket?.status}`);
+      } else {
+        printFail('Electronic QR Pass Verification (/api/tickets/verify/:id)', JSON.stringify(verifyRes.data));
+      }
+    } catch (err) {
+      printFail('Electronic QR Pass Verification (/api/tickets/verify/:id)', err.message);
+    }
+
+    // Test Gate Check-In RBAC (Visitor role should be 403 Forbidden)
+    try {
+      const rbacRes = await runRequest('/tickets/check-in', {
+        method: 'POST',
+        body: JSON.stringify({ ticket_id: Number(bookedTicketId) })
+      });
+      if (rbacRes.status === 403) {
+        printPass('Gate Check-In RBAC Protection (403 Forbidden)', 'Visitor blocked from unauthorized self-check-in');
+      } else {
+        printFail('Gate Check-In RBAC Protection', `Expected 403, got ${rbacRes.status}`);
+      }
+    } catch (err) {
+      printFail('Gate Check-In RBAC Protection', err.message);
+    }
   }
 
   // Verify my tickets

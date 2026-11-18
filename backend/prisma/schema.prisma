@@ -78,15 +78,17 @@ model Visitor {
 }
 
 model Ticket {
-  ticket_id    BigInt   @id @default(autoincrement())
-  visitor_id   Int
-  zone_id      Int
-  booking_date DateTime @default(now())
-  base_cost    Decimal  @db.Decimal(10, 2)
-  gst_amount   Decimal  @default(0.00) @db.Decimal(10, 2)
-  total_amount Decimal  @default(0.00) @db.Decimal(10, 2)
-  visitor      Visitor  @relation(fields: [visitor_id], references: [visitor_id])
-  zone         Zone     @relation(fields: [zone_id], references: [zone_id])
+  ticket_id     BigInt    @id @default(autoincrement())
+  visitor_id    Int
+  zone_id       Int
+  booking_date  DateTime  @default(now())
+  base_cost     Decimal   @db.Decimal(10, 2)
+  gst_amount    Decimal   @default(0.00) @db.Decimal(10, 2)
+  total_amount  Decimal   @default(0.00) @db.Decimal(10, 2)
+  status        String    @default("CONFIRMED") @db.VarChar(20)
+  checked_in_at DateTime?
+  visitor       Visitor   @relation(fields: [visitor_id], references: [visitor_id])
+  zone          Zone      @relation(fields: [zone_id], references: [zone_id])
 
   @@map("tickets")
 }
